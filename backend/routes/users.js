@@ -1,167 +1,140 @@
-const express = require('express');
-const { body, validationResult } = require('express-validator');
-const User = require('../models/User');
-const { auth } = require('../middleware/auth');
-
+const express = require("express");
 const router = express.Router();
+const User = require("../models/User");
+const { auth } = require("../middleware/auth");
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
 
-// @route   GET /api/users/profile
-// @desc    Get user profile
-// @access  Private
-router.get('/profile', auth, async (req, res) => {
-  try {
-    const user = await User.findById(req.user.userId).select('-password -loginAttempts -lockUntil');
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
+// Configure multer for file upload
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadDir = "uploads/profile-pictures";
+    // Create directory if it doesn't exist
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
     }
-
-    res.json({
-      success: true,
-      data: { user }
-    });
-
-  } catch (error) {
-    console.error('Get profile error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
+    cb(null, uploadDir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(null, "profile-" + uniqueSuffix + path.extname(file.originalname));
+  },
 });
 
-// @route   PUT /api/users/profile
-// @desc    Update user profile
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+  fileFilter: function (req, file, cb) {
+    const allowedTypes = /jpeg|jpg|png|gif/;
+    const extname = allowedTypes.test(
+      path.extname(file.originalname).toLowerCase()
+    );
+    const mimetype = allowedTypes.test(file.mimetype);
+
+    if (mimetype && extname) {
+      return cb(null, true);
+    } else {
+      cb(new Error("Only image files (jpeg, jpg, png, gif) are allowed"));
+    }
+  },
+});
+
+// @route   POST /api/users/profile-picture
+// @desc    Upload profile picture
 // @access  Private
-router.put('/profile', [
+router.post(
+  "/profile-picture",
   auth,
-  body('firstName')
-    .optional()
-    .trim()
-    .isLength({ min: 2, max: 50 })
-    .withMessage('First name must be between 2 and 50 characters'),
-  body('lastName')
-    .optional()
-    .trim()
-    .isLength({ min: 2, max: 50 })
-    .withMessage('Last name must be between 2 and 50 characters'),
-  body('profile.phone')
-    .optional()
-    .isMobilePhone()
-    .withMessage('Please enter a valid phone number'),
-  body('profile.bio')
-    .optional()
-    .isLength({ max: 500 })
-    .withMessage('Bio cannot exceed 500 characters'),
-  body('profile.website')
-    .optional()
-    .isURL()
-    .withMessage('Please enter a valid website URL')
-], async (req, res) => {
-  try {
-    // Check for validation errors
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
+  upload.single("profilePicture"),
+  async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          message: "No file uploaded",
+        });
+      }
+
+      const user = await User.findById(req.user.id);
+
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: "User not found",
+        });
+      }
+
+      // Delete old profile picture if exists
+      if (user.profile.avatar) {
+        const oldImagePath = path.join(__dirname, "..", user.profile.avatar);
+        if (fs.existsSync(oldImagePath)) {
+          fs.unlinkSync(oldImagePath);
+        }
+      }
+
+      // Save new profile picture path
+      user.profile.avatar = `/uploads/profile-pictures/${req.file.filename}`;
+      await user.save();
+
+      res.json({
+        success: true,
+        message: "Profile picture updated successfully",
+        data: {
+          avatar: user.profile.avatar,
+        },
+      });
+    } catch (error) {
+      console.error("Profile picture upload error:", error);
+      res.status(500).json({
         success: false,
-        message: 'Validation failed',
-        errors: errors.array()
+        message: "Server error while uploading profile picture",
       });
     }
-
-    const userId = req.user.userId;
-    const updateData = req.body;
-
-    // Remove fields that shouldn't be updated via this endpoint
-    delete updateData.email;
-    delete updateData.password;
-    delete updateData.userType;
-    delete updateData.isEmailVerified;
-    delete updateData.isActive;
-
-    const user = await User.findByIdAndUpdate(
-      userId,
-      { $set: updateData },
-      { new: true, runValidators: true }
-    ).select('-password -loginAttempts -lockUntil');
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
-    }
-
-    res.json({
-      success: true,
-      message: 'Profile updated successfully',
-      data: { user }
-    });
-
-  } catch (error) {
-    console.error('Update profile error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
   }
-});
+);
 
 // @route   PUT /api/users/change-password
 // @desc    Change user password
 // @access  Private
-router.put('/change-password', [
-  auth,
-  body('currentPassword')
-    .notEmpty()
-    .withMessage('Current password is required'),
-  body('newPassword')
-    .isLength({ min: 6 })
-    .withMessage('New password must be at least 6 characters long')
-    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
-    .withMessage('New password must contain at least one uppercase letter, one lowercase letter, and one number'),
-  body('confirmNewPassword')
-    .custom((value, { req }) => {
-      if (value !== req.body.newPassword) {
-        throw new Error('New passwords do not match');
-      }
-      return true;
-    })
-], async (req, res) => {
+router.put("/change-password", auth, async (req, res) => {
   try {
-    // Check for validation errors
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
+    const { currentPassword, newPassword } = req.body;
+
+    // Validation
+    if (!currentPassword || !newPassword) {
       return res.status(400).json({
         success: false,
-        message: 'Validation failed',
-        errors: errors.array()
+        message: "Please provide current and new password",
       });
     }
 
-    const { currentPassword, newPassword } = req.body;
-    const userId = req.user.userId;
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: "New password must be at least 6 characters long",
+      });
+    }
 
-    // Find user with password
-    const user = await User.findById(userId).select('+password');
+    // Get user with password
+    const user = await User.findById(req.user.id).select("+password");
+
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'User not found'
+        message: "User not found",
       });
     }
 
     // Verify current password
-    const isCurrentPasswordValid = await user.comparePassword(currentPassword);
-    if (!isCurrentPasswordValid) {
-      return res.status(400).json({
+    const isMatch = await user.comparePassword(currentPassword);
+
+    if (!isMatch) {
+      return res.status(401).json({
         success: false,
-        message: 'Current password is incorrect'
+        message: "Current password is incorrect",
       });
     }
 
@@ -171,50 +144,145 @@ router.put('/change-password', [
 
     res.json({
       success: true,
-      message: 'Password changed successfully'
+      message: "Password changed successfully",
     });
-
   } catch (error) {
-    console.error('Change password error:', error);
+    console.error("Change password error:", error);
     res.status(500).json({
       success: false,
-      message: 'Server error',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: "Server error while changing password",
+    });
+  }
+});
+
+// @route   PUT /api/users/notification-settings
+// @desc    Update notification settings
+// @access  Private
+router.put("/notification-settings", auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Initialize notificationSettings if it doesn't exist
+    if (!user.notificationSettings) {
+      user.notificationSettings = {};
+    }
+
+    // Update notification settings
+    Object.keys(req.body).forEach((key) => {
+      user.notificationSettings[key] = req.body[key];
+    });
+
+    user.markModified("notificationSettings");
+    await user.save();
+
+    res.json({
+      success: true,
+      message: "Notification settings updated successfully",
+      data: {
+        notificationSettings: user.notificationSettings,
+      },
+    });
+  } catch (error) {
+    console.error("Update notification settings error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while updating notification settings",
     });
   }
 });
 
 // @route   DELETE /api/users/account
-// @desc    Deactivate user account
+// @desc    Delete user account and all related data
 // @access  Private
-router.delete('/account', auth, async (req, res) => {
+router.delete("/account", auth, async (req, res) => {
   try {
-    const userId = req.user.userId;
-
-    const user = await User.findByIdAndUpdate(
-      userId,
-      { isActive: false },
-      { new: true }
-    ).select('-password -loginAttempts -lockUntil');
+    const user = await User.findById(req.user.id);
 
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'User not found'
+        message: "User not found",
+      });
+    }
+
+    // Import models for cascading delete
+    const Job = require("../models/Job");
+    const Application = require("../models/Application");
+
+    // Delete profile picture if exists
+    if (user.profile.avatar) {
+      const imagePath = path.join(__dirname, "..", user.profile.avatar);
+      if (fs.existsSync(imagePath)) {
+        fs.unlinkSync(imagePath);
+      }
+    }
+
+    // If employer, delete all their job postings and related applications
+    if (user.userType === "employer") {
+      // Find all jobs posted by this employer
+      const employerJobs = await Job.find({ company: req.user.id });
+      const jobIds = employerJobs.map((job) => job._id);
+
+      // Delete all applications for these jobs
+      await Application.deleteMany({ job: { $in: jobIds } });
+
+      // Delete all jobs posted by this employer
+      await Job.deleteMany({ company: req.user.id });
+    }
+
+    // If job seeker, delete all their applications
+    if (user.userType === "jobseeker") {
+      await Application.deleteMany({ applicant: req.user.id });
+    }
+
+    // Delete user account
+    await User.findByIdAndDelete(req.user.id);
+
+    res.json({
+      success: true,
+      message: "Account and all related data deleted successfully",
+    });
+  } catch (error) {
+    console.error("Delete account error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while deleting account",
+    });
+  }
+});
+
+// @route   GET /api/users/profile
+// @desc    Get user profile
+// @access  Private
+router.get("/profile", auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
       });
     }
 
     res.json({
       success: true,
-      message: 'Account deactivated successfully'
+      data: {
+        user,
+      },
     });
-
   } catch (error) {
-    console.error('Deactivate account error:', error);
+    console.error("Get profile error:", error);
     res.status(500).json({
       success: false,
-      message: 'Server error',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: "Server error while fetching profile",
     });
   }
 });
