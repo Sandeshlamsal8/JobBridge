@@ -187,7 +187,7 @@ userSchema.virtual("isLocked").get(function () {
 });
 
 // Index for better query performance
-userSchema.index({ email: 1 });
+// Note: email index is already created by unique: true in schema
 userSchema.index({ userType: 1 });
 userSchema.index({ createdAt: -1 });
 
