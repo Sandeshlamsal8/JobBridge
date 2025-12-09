@@ -83,9 +83,9 @@ function SignUpPage({ onNavigate }) {
 
         const result = await signup(formData)
 
-        if (result.success) {
-            // Redirect to home page on successful signup
-            onNavigate("home")
+        if (result.success && result.requiresVerification) {
+            // Redirect to verification page
+            onNavigate("verify-email", { email: formData.email })
         } else if (result.errors) {
             // Handle server validation errors
             const serverErrors = {}

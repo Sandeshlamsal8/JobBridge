@@ -58,16 +58,37 @@ const apiRequest = async (endpoint, options = {}) => {
 
 // Auth API functions
 export const authAPI = {
-  // Register new user
+  // Register new user (sends PIN to email)
   signup: async (userData) => {
     const response = await apiRequest("/auth/signup", {
       method: "POST",
       body: JSON.stringify(userData),
     });
 
+    // Note: No token on signup, only after email verification
+    return response;
+  },
+
+  // Verify email with PIN
+  verifyEmail: async (verificationData) => {
+    const response = await apiRequest("/auth/verify-email", {
+      method: "POST",
+      body: JSON.stringify(verificationData),
+    });
+
     if (response.success && response.data.token) {
       setAuthToken(response.data.token);
     }
+
+    return response;
+  },
+
+  // Resend verification PIN
+  resendPin: async (emailData) => {
+    const response = await apiRequest("/auth/resend-pin", {
+      method: "POST",
+      body: JSON.stringify(emailData),
+    });
 
     return response;
   },

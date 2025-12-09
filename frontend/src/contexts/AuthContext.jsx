@@ -283,7 +283,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Signup function
+  // Signup function (sends PIN, doesn't log in yet)
   const signup = async (userData) => {
     try {
       dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: true });
@@ -292,14 +292,8 @@ export const AuthProvider = ({ children }) => {
       const response = await authAPI.signup(userData);
 
       if (response.success) {
-        dispatch({
-          type: AUTH_ACTIONS.LOGIN_SUCCESS,
-          payload: {
-            user: response.data.user,
-            token: response.data.token,
-          },
-        });
-        return { success: true, data: response.data };
+        dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: false });
+        return { success: true, data: response.data, requiresVerification: true };
       } else {
         dispatch({
           type: AUTH_ACTIONS.SET_ERROR,
@@ -313,6 +307,40 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       const errorMessage = error.message || "Signup failed";
+      dispatch({
+        type: AUTH_ACTIONS.SET_ERROR,
+        payload: errorMessage,
+      });
+      return { success: false, message: errorMessage };
+    }
+  };
+
+  // Verify email function (completes registration)
+  const verifyEmail = async (verificationData) => {
+    try {
+      dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: true });
+      dispatch({ type: AUTH_ACTIONS.CLEAR_ERROR });
+
+      const response = await authAPI.verifyEmail(verificationData);
+
+      if (response.success) {
+        dispatch({
+          type: AUTH_ACTIONS.LOGIN_SUCCESS,
+          payload: {
+            user: response.data.user,
+            token: response.data.token,
+          },
+        });
+        return { success: true, data: response.data };
+      } else {
+        dispatch({
+          type: AUTH_ACTIONS.SET_ERROR,
+          payload: response.message || "Verification failed",
+        });
+        return { success: false, message: response.message };
+      }
+    } catch (error) {
+      const errorMessage = error.message || "Verification failed";
       dispatch({
         type: AUTH_ACTIONS.SET_ERROR,
         payload: errorMessage,
@@ -349,6 +377,7 @@ export const AuthProvider = ({ children }) => {
     ...state,
     login,
     signup,
+    verifyEmail,
     logout,
     updateUser,
     clearError,

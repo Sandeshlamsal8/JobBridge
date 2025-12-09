@@ -187,7 +187,6 @@ userSchema.virtual("isLocked").get(function () {
 });
 
 // Index for better query performance
-userSchema.index({ email: 1 });
 userSchema.index({ userType: 1 });
 userSchema.index({ createdAt: -1 });
 

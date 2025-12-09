@@ -2,7 +2,9 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
+const EmailVerification = require('../models/EmailVerification');
 const { auth } = require('../middleware/auth');
+const { generatePIN, sendVerificationEmail } = require('../utils/emailService');
 
 const router = express.Router();
 
@@ -14,7 +16,7 @@ const generateToken = (userId) => {
 };
 
 // @route   POST /api/auth/signup
-// @desc    Register a new user
+// @desc    Send verification PIN to email (Step 1)
 // @access  Public
 router.post('/signup', [
   body('firstName')
@@ -75,16 +77,139 @@ router.post('/signup', [
       });
     }
 
-    // Create new user
+    // Delete any existing verification for this email
+    await EmailVerification.deleteMany({ email });
+
+    // Generate PIN
+    const pin = generatePIN();
+
+    // Store verification data temporarily
+    const verification = new EmailVerification({
+      email,
+      pin,
+      userData: {
+        firstName,
+        lastName,
+        password,
+        userType
+      }
+    });
+
+    await verification.save();
+
+    // Send verification email
+    const emailResult = await sendVerificationEmail(email, pin, firstName);
+
+    if (!emailResult.success) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to send verification email. Please try again.'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Verification PIN sent to your email. Please check your inbox.',
+      data: {
+        email,
+        expiresIn: '15 minutes'
+      }
+    });
+
+  } catch (error) {
+    console.error('Signup error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during registration',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// @route   POST /api/auth/verify-email
+// @desc    Verify PIN and complete registration (Step 2)
+// @access  Public
+router.post('/verify-email', [
+  body('email')
+    .isEmail()
+    .normalizeEmail()
+    .withMessage('Please enter a valid email address'),
+  body('pin')
+    .isLength({ min: 6, max: 6 })
+    .withMessage('PIN must be 6 digits')
+], async (req, res) => {
+  try {
+    // Check for validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    const { email, pin } = req.body;
+
+    // Find verification record
+    const verification = await EmailVerification.findOne({ 
+      email,
+      verified: false
+    });
+
+    if (!verification) {
+      return res.status(400).json({
+        success: false,
+        message: 'Verification request not found or already used. Please sign up again.'
+      });
+    }
+
+    // Check if expired
+    if (verification.expiresAt < new Date()) {
+      await EmailVerification.deleteOne({ _id: verification._id });
+      return res.status(400).json({
+        success: false,
+        message: 'Verification PIN has expired. Please sign up again.'
+      });
+    }
+
+    // Check attempts
+    if (verification.attempts >= 5) {
+      await EmailVerification.deleteOne({ _id: verification._id });
+      return res.status(400).json({
+        success: false,
+        message: 'Too many failed attempts. Please sign up again.'
+      });
+    }
+
+    // Verify PIN
+    if (verification.pin !== pin) {
+      verification.attempts += 1;
+      await verification.save();
+      
+      return res.status(400).json({
+        success: false,
+        message: `Invalid PIN. ${5 - verification.attempts} attempts remaining.`
+      });
+    }
+
+    // PIN is correct - Create user
+    const { firstName, lastName, password, userType } = verification.userData;
+
     const user = new User({
       firstName,
       lastName,
       email,
       password,
-      userType
+      userType,
+      isEmailVerified: true
     });
 
     await user.save();
+
+    // Mark verification as used
+    verification.verified = true;
+    await verification.save();
 
     // Generate JWT token
     const token = generateToken(user._id);
@@ -95,7 +220,7 @@ router.post('/signup', [
 
     res.status(201).json({
       success: true,
-      message: 'User registered successfully',
+      message: 'Email verified successfully! Your account has been created.',
       data: {
         user: userResponse,
         token
@@ -103,10 +228,80 @@ router.post('/signup', [
     });
 
   } catch (error) {
-    console.error('Signup error:', error);
+    console.error('Verification error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error during registration',
+      message: 'Server error during verification',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// @route   POST /api/auth/resend-pin
+// @desc    Resend verification PIN
+// @access  Public
+router.post('/resend-pin', [
+  body('email')
+    .isEmail()
+    .normalizeEmail()
+    .withMessage('Please enter a valid email address')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    const { email } = req.body;
+
+    // Find existing verification
+    const verification = await EmailVerification.findOne({ 
+      email,
+      verified: false
+    });
+
+    if (!verification) {
+      return res.status(400).json({
+        success: false,
+        message: 'No pending verification found. Please sign up again.'
+      });
+    }
+
+    // Generate new PIN
+    const pin = generatePIN();
+    verification.pin = pin;
+    verification.expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+    verification.attempts = 0;
+    await verification.save();
+
+    // Send new PIN
+    const emailResult = await sendVerificationEmail(
+      email, 
+      pin, 
+      verification.userData.firstName
+    );
+
+    if (!emailResult.success) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to send verification email. Please try again.'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'New verification PIN sent to your email.'
+    });
+
+  } catch (error) {
+    console.error('Resend PIN error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }

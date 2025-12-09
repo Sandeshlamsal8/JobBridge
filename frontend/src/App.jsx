@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
 import SignUpPage from "./pages/SignUpPage";
+import EmailVerificationPage from "./pages/EmailVerificationPage";
 import JobSeekerDashboard from "./pages/JobSeekerDashboard";
 import EmployerDashboard from "./pages/EmployerDashboard";
 import PostJobPage from "./pages/PostJobPage";
@@ -17,8 +18,25 @@ import CandidateProfilePage from "./pages/CandidateProfilePage";
 import ApplicationReviewPage from "./pages/ApplicationReviewPage";
 
 function AppContent() {
-  const { user, isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading, verifyEmail } = useAuth();
   const [currentPage, setCurrentPage] = useState("home");
+  const [pageData, setPageData] = useState(null);
+
+  // Navigation handler with data
+  const handleNavigate = (page, data = null) => {
+    setCurrentPage(page);
+    setPageData(data);
+  };
+
+  // Handle verification success
+  const handleVerificationSuccess = async (data) => {
+    // User is now logged in via AuthContext
+    if (data.user.userType === "jobseeker") {
+      setCurrentPage("jobseeker-dashboard");
+    } else if (data.user.userType === "employer") {
+      setCurrentPage("employer-dashboard");
+    }
+  };
 
   // Redirect to appropriate dashboard after login
   useEffect(() => {
@@ -50,69 +68,77 @@ function AppContent() {
   const renderPage = () => {
     switch (currentPage) {
       case "login":
-        return <LoginPage onNavigate={setCurrentPage} />;
+        return <LoginPage onNavigate={handleNavigate} />;
       case "signup":
-        return <SignUpPage onNavigate={setCurrentPage} />;
+        return <SignUpPage onNavigate={handleNavigate} />;
+      case "verify-email":
+        return (
+          <EmailVerificationPage
+            email={pageData?.email}
+            onNavigate={handleNavigate}
+            onVerificationSuccess={handleVerificationSuccess}
+          />
+        );
       case "job-listings":
-        return <JobListingsPage onNavigate={setCurrentPage} />;
+        return <JobListingsPage onNavigate={handleNavigate} />;
       // Employer Routes
       case "post-job":
         return isAuthenticated && user?.userType === "employer" ? (
-          <PostJobPage onNavigate={setCurrentPage} />
+          <PostJobPage onNavigate={handleNavigate} />
         ) : (
-          <HomePage onNavigate={setCurrentPage} />
+          <HomePage onNavigate={handleNavigate} />
         );
       case "employer-dashboard":
         return isAuthenticated && user?.userType === "employer" ? (
-          <EmployerDashboard onNavigate={setCurrentPage} />
+          <EmployerDashboard onNavigate={handleNavigate} />
         ) : (
-          <HomePage onNavigate={setCurrentPage} />
+          <HomePage onNavigate={handleNavigate} />
         );
       case "my-jobs":
         return isAuthenticated && user?.userType === "employer" ? (
-          <MyJobsPage onNavigate={setCurrentPage} />
+          <MyJobsPage onNavigate={handleNavigate} />
         ) : (
-          <HomePage onNavigate={setCurrentPage} />
+          <HomePage onNavigate={handleNavigate} />
         );
       case "applications":
         return isAuthenticated && user?.userType === "employer" ? (
-          <ApplicationsPage onNavigate={setCurrentPage} />
+          <ApplicationsPage onNavigate={handleNavigate} />
         ) : (
-          <HomePage onNavigate={setCurrentPage} />
+          <HomePage onNavigate={handleNavigate} />
         );
       case "company-verification":
         return isAuthenticated && user?.userType === "employer" ? (
-          <CompanyVerificationPage onNavigate={setCurrentPage} />
+          <CompanyVerificationPage onNavigate={handleNavigate} />
         ) : (
-          <HomePage onNavigate={setCurrentPage} />
+          <HomePage onNavigate={handleNavigate} />
         );
 
       // Job Seeker Routes
       case "jobseeker-dashboard":
         return isAuthenticated && user?.userType === "jobseeker" ? (
-          <JobSeekerDashboard onNavigate={setCurrentPage} />
+          <JobSeekerDashboard onNavigate={handleNavigate} />
         ) : (
-          <HomePage onNavigate={setCurrentPage} />
+          <HomePage onNavigate={handleNavigate} />
         );
       case "my-applications":
         return isAuthenticated && user?.userType === "jobseeker" ? (
-          <MyApplicationsPage onNavigate={setCurrentPage} />
+          <MyApplicationsPage onNavigate={handleNavigate} />
         ) : (
-          <HomePage onNavigate={setCurrentPage} />
+          <HomePage onNavigate={handleNavigate} />
         );
 
       // Common Routes
       case "profile-settings":
         return isAuthenticated ? (
-          <ProfileSettingsPage onNavigate={setCurrentPage} />
+          <ProfileSettingsPage onNavigate={handleNavigate} />
         ) : (
-          <HomePage onNavigate={setCurrentPage} />
+          <HomePage onNavigate={handleNavigate} />
         );
       case "account-settings":
         return isAuthenticated ? (
-          <AccountSettings onNavigate={setCurrentPage} />
+          <AccountSettings onNavigate={handleNavigate} />
         ) : (
-          <HomePage onNavigate={setCurrentPage} />
+          <HomePage onNavigate={handleNavigate} />
         );
 
       // Dynamic Routes - Candidate Profile
@@ -121,11 +147,11 @@ function AppContent() {
           const candidateId = currentPage.split("/")[1];
           return isAuthenticated && user?.userType === "employer" ? (
             <CandidateProfilePage
-              onNavigate={setCurrentPage}
+              onNavigate={handleNavigate}
               candidateId={candidateId}
             />
           ) : (
-            <HomePage onNavigate={setCurrentPage} />
+            <HomePage onNavigate={handleNavigate} />
           );
         }
 
@@ -134,24 +160,24 @@ function AppContent() {
           const applicationId = currentPage.split("/")[1];
           return isAuthenticated && user?.userType === "employer" ? (
             <ApplicationReviewPage
-              onNavigate={setCurrentPage}
+              onNavigate={handleNavigate}
               applicationId={applicationId}
             />
           ) : (
-            <HomePage onNavigate={setCurrentPage} />
+            <HomePage onNavigate={handleNavigate} />
           );
         }
         // If user is authenticated, redirect to their dashboard
         if (isAuthenticated && user) {
           if (user.userType === "jobseeker") {
             setCurrentPage("jobseeker-dashboard");
-            return <JobSeekerDashboard onNavigate={setCurrentPage} />;
+            return <JobSeekerDashboard onNavigate={handleNavigate} />;
           } else if (user.userType === "employer") {
             setCurrentPage("employer-dashboard");
-            return <EmployerDashboard onNavigate={setCurrentPage} />;
+            return <EmployerDashboard onNavigate={handleNavigate} />;
           }
         }
-        return <HomePage onNavigate={setCurrentPage} />;
+        return <HomePage onNavigate={handleNavigate} />;
     }
   };
 
