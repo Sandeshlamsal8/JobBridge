@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
+import Toast from "../components/ui/Toast";
+import { useToast } from "../hooks/useToast";
 
 function ApplicationReviewPage({ onNavigate, applicationId }) {
   const { user, logout } = useAuth();
@@ -11,12 +13,23 @@ function ApplicationReviewPage({ onNavigate, applicationId }) {
   const [isUpdating, setIsUpdating] = useState(false);
   const [note, setNote] = useState("");
   const [showNoteForm, setShowNoteForm] = useState(false);
+  const [selectedStatus, setSelectedStatus] = useState("");
+  const [showUpdateButton, setShowUpdateButton] = useState(false);
+  const { toast, showSuccess, showError, hideToast } = useToast();
 
   useEffect(() => {
     if (applicationId) {
       fetchApplication();
     }
   }, [applicationId]);
+
+  useEffect(() => {
+    if (application) {
+      setSelectedStatus(application.status);
+    }
+  }, [application]);
+
+
 
   const fetchApplication = async () => {
     setIsLoading(true);
@@ -48,7 +61,14 @@ function ApplicationReviewPage({ onNavigate, applicationId }) {
     }
   };
 
-  const updateStatus = async (newStatus) => {
+  const handleStatusChange = (newStatus) => {
+    setSelectedStatus(newStatus);
+    setShowUpdateButton(newStatus !== application.status);
+  };
+
+  const updateStatus = async () => {
+    if (selectedStatus === application.status) return;
+    
     setIsUpdating(true);
     try {
       const token = sessionStorage.getItem("jobbridge_token");
@@ -60,7 +80,7 @@ function ApplicationReviewPage({ onNavigate, applicationId }) {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ status: newStatus }),
+          body: JSON.stringify({ status: selectedStatus }),
         }
       );
 
@@ -68,13 +88,18 @@ function ApplicationReviewPage({ onNavigate, applicationId }) {
 
       if (data.success) {
         setApplication(data.data.application);
-        alert(`Application status updated to: ${newStatus}`);
+        setShowUpdateButton(false);
+        showSuccess(`Application status updated to: ${formatStatus(selectedStatus)}`);
       } else {
-        alert(data.message || "Failed to update status");
+        showError(data.message || "Failed to update status");
+        setSelectedStatus(application.status); // Reset to original status
+        setShowUpdateButton(false);
       }
     } catch (error) {
       console.error("Error updating status:", error);
-      alert("Failed to update status. Please try again.");
+      showError("Failed to update status. Please try again.");
+      setSelectedStatus(application.status); // Reset to original status
+      setShowUpdateButton(false);
     } finally {
       setIsUpdating(false);
     }
@@ -104,13 +129,13 @@ function ApplicationReviewPage({ onNavigate, applicationId }) {
         setNote("");
         setShowNoteForm(false);
         fetchApplication(); // Refresh to get updated notes
-        alert("Note added successfully");
+        showSuccess("Note added successfully");
       } else {
-        alert(data.message || "Failed to add note");
+        showError(data.message || "Failed to add note");
       }
     } catch (error) {
       console.error("Error adding note:", error);
-      alert("Failed to add note. Please try again.");
+      showError("Failed to add note. Please try again.");
     } finally {
       setIsUpdating(false);
     }
@@ -402,44 +427,86 @@ function ApplicationReviewPage({ onNavigate, applicationId }) {
 
           {/* Sidebar - Actions */}
           <div className="space-y-6">
-            {/* Quick Actions */}
+            {/* Status Update */}
             <div className="glass-card p-6 rounded-3xl animate-slide-up">
               <h2 className="text-xl font-bold text-slate-100 mb-4">
                 Update Status
               </h2>
-              <div className="space-y-2">
-                {[
-                  { value: "pending", label: "Pending", icon: "⏳" },
-                  { value: "reviewed", label: "Reviewed", icon: "👁️" },
-                  { value: "shortlisted", label: "Shortlisted", icon: "⭐" },
-                  {
-                    value: "interview-scheduled",
-                    label: "Interview Scheduled",
-                    icon: "📅",
-                  },
-                  {
-                    value: "interview-completed",
-                    label: "Interview Completed",
-                    icon: "✅",
-                  },
-                  { value: "offered", label: "Offered", icon: "🎉" },
-                  { value: "hired", label: "Hired", icon: "🎊" },
-                  { value: "rejected", label: "Rejected", icon: "❌" },
-                ].map((status) => (
-                  <button
-                    key={status.value}
-                    onClick={() => updateStatus(status.value)}
-                    disabled={isUpdating || application.status === status.value}
-                    className={`w-full text-left px-4 py-3 rounded-lg transition-all ${
-                      application.status === status.value
-                        ? "bg-primary-500 text-white"
-                        : "glass-card-hover text-slate-300"
-                    } disabled:opacity-50`}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">
+                    Application Status
+                  </label>
+                  <select
+                    value={selectedStatus}
+                    onChange={(e) => handleStatusChange(e.target.value)}
+                    disabled={isUpdating}
+                    className="input-field w-full"
                   >
-                    <span className="mr-2">{status.icon}</span>
-                    {status.label}
+                    <option value="pending">⏳ Pending</option>
+                    <option value="reviewed">👁️ Reviewed</option>
+                    <option value="shortlisted">⭐ Shortlisted</option>
+                    <option value="interview-scheduled">📅 Interview Scheduled</option>
+                    <option value="interview-completed">✅ Interview Completed</option>
+                    <option value="offered">🎉 Offered</option>
+                    <option value="hired">🎊 Hired</option>
+                    <option value="rejected">❌ Rejected</option>
+                  </select>
+                </div>
+                
+                {showUpdateButton && (
+                  <button
+                    onClick={updateStatus}
+                    disabled={isUpdating}
+                    className="btn-primary w-full px-4 py-3 flex items-center justify-center gap-2 animate-fade-in"
+                  >
+                    {isUpdating ? (
+                      <>
+                        <svg
+                          className="w-5 h-5 animate-spin"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          ></path>
+                        </svg>
+                        Updating...
+                      </>
+                    ) : (
+                      <>
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+                          />
+                        </svg>
+                        Update Status
+                      </>
+                    )}
                   </button>
-                ))}
+                )}
+                
+                <div className="text-xs text-slate-400 text-center">
+                  Current status: <span className="text-primary-400 font-medium">{formatStatus(application.status)}</span>
+                </div>
               </div>
             </div>
 
@@ -515,6 +582,14 @@ function ApplicationReviewPage({ onNavigate, applicationId }) {
       </div>
 
       <Footer user={user} />
+      
+      {/* Toast Notification */}
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        isVisible={toast.isVisible}
+        onClose={hideToast}
+      />
     </div>
   );
 }
