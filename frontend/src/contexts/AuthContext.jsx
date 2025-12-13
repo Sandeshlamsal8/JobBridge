@@ -200,20 +200,27 @@ export const AuthProvider = ({ children }) => {
     };
   }, [state.isAuthenticated, checkSession]);
 
-  // Listen for storage events (multi-tab sync)
+  // Note: sessionStorage doesn't trigger storage events across tabs
+  // This is intentional for better security - each tab has independent session
+
+  // Listen for beforeunload to ensure cleanup on browser close
   useEffect(() => {
-    const handleStorageChange = (e) => {
-      if (e.key === "jobbridge_token") {
-        if (!e.newValue && state.isAuthenticated) {
-          // Token removed in another tab, logout
-          dispatch({ type: AUTH_ACTIONS.LOGOUT });
-        }
+    const handleBeforeUnload = () => {
+      // Clear any sensitive data before browser closes
+      if (refreshTimerRef.current) {
+        clearInterval(refreshTimerRef.current);
+      }
+      if (activityTimerRef.current) {
+        clearInterval(activityTimerRef.current);
+      }
+      if (sessionCheckTimerRef.current) {
+        clearInterval(sessionCheckTimerRef.current);
       }
     };
 
-    window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
-  }, [state.isAuthenticated]);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, []);
 
   // Check if user is authenticated on app load
   useEffect(() => {

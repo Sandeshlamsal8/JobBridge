@@ -20,7 +20,7 @@ function CandidateProfilePage({ onNavigate, candidateId }) {
     setError(null);
 
     try {
-      const token = localStorage.getItem("jobbridge_token");
+      const token = sessionStorage.getItem("jobbridge_token");
       const response = await fetch(
         `${import.meta.env.VITE_API_URL}/users/${candidateId}`,
         {

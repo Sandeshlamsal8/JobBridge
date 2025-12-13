@@ -24,7 +24,7 @@ function EmployerDashboard({ onNavigate }) {
     setError(null);
 
     try {
-      const token = localStorage.getItem("jobbridge_token");
+      const token = sessionStorage.getItem("jobbridge_token");
       const headers = {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,

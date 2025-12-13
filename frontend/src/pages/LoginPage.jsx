@@ -7,7 +7,7 @@ function LoginPage({ onNavigate }) {
         email: "",
         password: "",
     })
-    const [rememberMe, setRememberMe] = useState(false)
+
     const [showPassword, setShowPassword] = useState(false)
 
     const handleChange = (e) => {
@@ -118,22 +118,7 @@ function LoginPage({ onNavigate }) {
                             </div>
                         </div>
 
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center">
-                                <input
-                                    id="remember-me"
-                                    name="remember-me"
-                                    type="checkbox"
-                                    checked={rememberMe}
-                                    onChange={(e) => setRememberMe(e.target.checked)}
-                                    className="h-4 w-4 text-primary-500 focus:ring-primary-500/50 border-dark-600 rounded bg-dark-800 transition-colors"
-                                    disabled={isLoading}
-                                />
-                                <label htmlFor="remember-me" className="ml-3 block text-sm text-slate-300 font-medium">
-                                    Remember me
-                                </label>
-                            </div>
-
+                        <div className="flex justify-end">
                             <div className="text-sm">
                                 <a href="#" className="text-primary-400 hover:text-primary-300 transition-colors font-semibold">
                                     Forgot password?

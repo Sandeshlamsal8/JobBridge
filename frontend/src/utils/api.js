@@ -1,18 +1,23 @@
 const API_BASE_URL =
   import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
-// Helper function to get auth token from localStorage
+// Helper function to get auth token from sessionStorage (clears when browser closes)
 const getAuthToken = () => {
-  return localStorage.getItem("jobbridge_token");
+  return sessionStorage.getItem("jobbridge_token");
 };
 
-// Helper function to set auth token in localStorage
+// Helper function to set auth token in sessionStorage (clears when browser closes)
 const setAuthToken = (token) => {
-  localStorage.setItem("jobbridge_token", token);
+  // Always use sessionStorage for better security
+  sessionStorage.setItem("jobbridge_token", token);
+  // Clear any existing localStorage token for cleanup
+  localStorage.removeItem("jobbridge_token");
 };
 
-// Helper function to remove auth token from localStorage
+// Helper function to remove auth token from sessionStorage
 const removeAuthToken = () => {
+  sessionStorage.removeItem("jobbridge_token");
+  // Also clear localStorage for cleanup
   localStorage.removeItem("jobbridge_token");
 };
 

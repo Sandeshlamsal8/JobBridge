@@ -123,7 +123,7 @@ function PostJobPage({ onNavigate }) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("jobbridge_token")}`,
+          Authorization: `Bearer ${sessionStorage.getItem("jobbridge_token")}`,
         },
         body: JSON.stringify({
           ...formData,

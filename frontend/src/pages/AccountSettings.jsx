@@ -35,7 +35,7 @@ function AccountSettings({ onNavigate }) {
 
   const fetchUserProfile = async () => {
     try {
-      const token = localStorage.getItem("jobbridge_token");
+      const token = sessionStorage.getItem("jobbridge_token");
       const response = await fetch(
         `${import.meta.env.VITE_API_URL}/users/profile`,
         {
@@ -92,7 +92,7 @@ function AccountSettings({ onNavigate }) {
       const formData = new FormData();
       formData.append("profilePicture", selectedImage);
 
-      const token = localStorage.getItem("jobbridge_token");
+      const token = sessionStorage.getItem("jobbridge_token");
       const response = await fetch(
         `${import.meta.env.VITE_API_URL}/users/profile-picture`,
         {
@@ -149,7 +149,7 @@ function AccountSettings({ onNavigate }) {
     setMessage({ type: "", text: "" });
 
     try {
-      const token = localStorage.getItem("jobbridge_token");
+      const token = sessionStorage.getItem("jobbridge_token");
       const response = await fetch(
         `${import.meta.env.VITE_API_URL}/users/change-password`,
         {
@@ -195,7 +195,7 @@ function AccountSettings({ onNavigate }) {
     setNotifications({ ...notifications, [key]: newValue });
 
     try {
-      const token = localStorage.getItem("jobbridge_token");
+      const token = sessionStorage.getItem("jobbridge_token");
       await fetch(
         `${import.meta.env.VITE_API_URL}/users/notification-settings`,
         {
@@ -223,7 +223,7 @@ function AccountSettings({ onNavigate }) {
     setMessage({ type: "", text: "" });
 
     try {
-      const token = localStorage.getItem("jobbridge_token");
+      const token = sessionStorage.getItem("jobbridge_token");
       const response = await fetch(
         `${import.meta.env.VITE_API_URL}/users/account`,
         {

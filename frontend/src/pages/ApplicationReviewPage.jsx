@@ -23,7 +23,7 @@ function ApplicationReviewPage({ onNavigate, applicationId }) {
     setError(null);
 
     try {
-      const token = localStorage.getItem("jobbridge_token");
+      const token = sessionStorage.getItem("jobbridge_token");
       const response = await fetch(
         `${import.meta.env.VITE_API_URL}/applications/${applicationId}`,
         {
@@ -51,7 +51,7 @@ function ApplicationReviewPage({ onNavigate, applicationId }) {
   const updateStatus = async (newStatus) => {
     setIsUpdating(true);
     try {
-      const token = localStorage.getItem("jobbridge_token");
+      const token = sessionStorage.getItem("jobbridge_token");
       const response = await fetch(
         `${import.meta.env.VITE_API_URL}/applications/${applicationId}/status`,
         {
@@ -85,7 +85,7 @@ function ApplicationReviewPage({ onNavigate, applicationId }) {
 
     setIsUpdating(true);
     try {
-      const token = localStorage.getItem("jobbridge_token");
+      const token = sessionStorage.getItem("jobbridge_token");
       const response = await fetch(
         `${import.meta.env.VITE_API_URL}/applications/${applicationId}/notes`,
         {
