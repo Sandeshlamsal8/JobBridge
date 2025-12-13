@@ -4,6 +4,8 @@ import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
 import SignUpPage from "./pages/SignUpPage";
 import EmailVerificationPage from "./pages/EmailVerificationPage";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import JobSeekerDashboard from "./pages/JobSeekerDashboard";
 import EmployerDashboard from "./pages/EmployerDashboard";
 import PostJobPage from "./pages/PostJobPage";
@@ -21,6 +23,19 @@ function AppContent() {
   const { user, isAuthenticated, isLoading, verifyEmail } = useAuth();
   const [currentPage, setCurrentPage] = useState("home");
   const [pageData, setPageData] = useState(null);
+
+  // Check for reset password token in URL on mount
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+    
+    if (token) {
+      setCurrentPage('reset-password');
+      setPageData({ token });
+      // Clear the URL parameter
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
 
   // Navigation handler with data
   const handleNavigate = (page, data = null) => {
@@ -73,6 +88,15 @@ function AppContent() {
             email={pageData?.email}
             onNavigate={handleNavigate}
             onVerificationSuccess={handleVerificationSuccess}
+          />
+        );
+      case "forgot-password":
+        return <ForgotPasswordPage onNavigate={handleNavigate} />;
+      case "reset-password":
+        return (
+          <ResetPasswordPage 
+            onNavigate={handleNavigate} 
+            token={pageData?.token}
           />
         );
       case "job-listings":
