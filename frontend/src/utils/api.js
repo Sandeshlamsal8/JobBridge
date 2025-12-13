@@ -142,6 +142,27 @@ export const authAPI = {
 
     return response;
   },
+
+  // Forgot password - request reset link
+  forgotPassword: async (emailData) => {
+    return await apiRequest("/auth/forgot-password", {
+      method: "POST",
+      body: JSON.stringify(emailData),
+    });
+  },
+
+  // Reset password with token
+  resetPassword: async (resetData) => {
+    return await apiRequest("/auth/reset-password", {
+      method: "POST",
+      body: JSON.stringify(resetData),
+    });
+  },
+
+  // Verify reset token
+  verifyResetToken: async (token) => {
+    return await apiRequest(`/auth/verify-reset-token/${token}`);
+  },
 };
 
 // User API functions

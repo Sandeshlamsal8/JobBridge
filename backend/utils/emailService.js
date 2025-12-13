@@ -96,7 +96,152 @@ const sendVerificationEmail = async (email, pin, firstName) => {
   }
 };
 
+// Generate secure reset token
+const generateResetToken = () => {
+  const crypto = require('crypto');
+  return crypto.randomBytes(32).toString('hex');
+};
+
+// Send password reset email
+const sendPasswordResetEmail = async (email, resetToken, firstName) => {
+  try {
+    const transporter = createTransporter();
+    
+    // Create reset URL - adjust this based on your frontend URL
+    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${resetToken}`;
+
+    const mailOptions = {
+      from: `"JobBridge" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: 'Password Reset Request - JobBridge',
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+            .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+            .button { display: inline-block; background: #667eea; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }
+            .button:hover { background: #5568d3; }
+            .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+            .warning { background: #fff3cd; border-left: 4px solid #ffc107; padding: 10px; margin: 15px 0; }
+            .danger { background: #f8d7da; border-left: 4px solid #dc3545; padding: 10px; margin: 15px 0; }
+            .link-box { background: white; border: 1px solid #ddd; padding: 15px; margin: 15px 0; border-radius: 5px; word-break: break-all; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>🔒 Password Reset Request</h1>
+            </div>
+            <div class="content">
+              <p>Hi ${firstName},</p>
+              <p>We received a request to reset your password for your JobBridge account.</p>
+              
+              <p style="text-align: center;">
+                <a href="${resetUrl}" class="button">Reset Your Password</a>
+              </p>
+
+              <p style="font-size: 12px; color: #666;">Or copy and paste this link into your browser:</p>
+              <div class="link-box">
+                <a href="${resetUrl}" style="color: #667eea;">${resetUrl}</a>
+              </div>
+
+              <div class="warning">
+                <strong>⚠️ Important:</strong> This link will expire in 1 hour for security reasons.
+              </div>
+
+              <div class="danger">
+                <strong>🛡️ Security Notice:</strong> If you didn't request this password reset, please ignore this email and your password will remain unchanged. Someone may have entered your email address by mistake.
+              </div>
+
+              <p>Best regards,<br>The JobBridge Team</p>
+            </div>
+            <div class="footer">
+              <p>This is an automated email. Please do not reply.</p>
+              <p>&copy; ${new Date().getFullYear()} JobBridge. All rights reserved.</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+    return { success: true };
+  } catch (error) {
+    console.error('Password reset email error:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Send password reset confirmation email
+const sendPasswordResetConfirmation = async (email, firstName) => {
+  try {
+    const transporter = createTransporter();
+
+    const mailOptions = {
+      from: `"JobBridge" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: 'Password Changed Successfully - JobBridge',
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+            .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+            .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+            .success { background: #d4edda; border-left: 4px solid #28a745; padding: 10px; margin: 15px 0; }
+            .danger { background: #f8d7da; border-left: 4px solid #dc3545; padding: 10px; margin: 15px 0; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>✅ Password Changed</h1>
+            </div>
+            <div class="content">
+              <p>Hi ${firstName},</p>
+              
+              <div class="success">
+                <strong>Success!</strong> Your password has been changed successfully.
+              </div>
+
+              <p>Your JobBridge account password was recently changed. You can now log in with your new password.</p>
+
+              <div class="danger">
+                <strong>🛡️ Security Alert:</strong> If you didn't make this change, please contact our support team immediately at support@jobbridge.com
+              </div>
+
+              <p>Best regards,<br>The JobBridge Team</p>
+            </div>
+            <div class="footer">
+              <p>This is an automated email. Please do not reply.</p>
+              <p>&copy; ${new Date().getFullYear()} JobBridge. All rights reserved.</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+    return { success: true };
+  } catch (error) {
+    console.error('Password reset confirmation email error:', error);
+    return { success: false, error: error.message };
+  }
+};
+
 module.exports = {
   generatePIN,
-  sendVerificationEmail
+  sendVerificationEmail,
+  generateResetToken,
+  sendPasswordResetEmail,
+  sendPasswordResetConfirmation
 };

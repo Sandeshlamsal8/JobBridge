@@ -3,8 +3,15 @@ const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
 const EmailVerification = require('../models/EmailVerification');
+const PasswordReset = require('../models/PasswordReset');
 const { auth } = require('../middleware/auth');
-const { generatePIN, sendVerificationEmail } = require('../utils/emailService');
+const { 
+  generatePIN, 
+  sendVerificationEmail,
+  generateResetToken,
+  sendPasswordResetEmail,
+  sendPasswordResetConfirmation
+} = require('../utils/emailService');
 
 const router = express.Router();
 
@@ -471,6 +478,247 @@ router.post('/refresh', auth, async (req, res) => {
 
   } catch (error) {
     console.error('Token refresh error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// @route   POST /api/auth/forgot-password
+// @desc    Request password reset (send email with reset link)
+// @access  Public
+router.post('/forgot-password', [
+  body('email')
+    .isEmail()
+    .normalizeEmail()
+    .withMessage('Please enter a valid email address')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    const { email } = req.body;
+
+    // Find user by email
+    const user = await User.findOne({ email });
+
+    // Always return success message for security (don't reveal if email exists)
+    const successMessage = 'If an account exists with this email, you will receive a password reset link shortly.';
+
+    if (!user) {
+      return res.json({
+        success: true,
+        message: successMessage
+      });
+    }
+
+    // Check if user account is active
+    if (!user.isActive) {
+      return res.json({
+        success: true,
+        message: successMessage
+      });
+    }
+
+    // Delete any existing password reset requests for this user
+    await PasswordReset.deleteMany({ email });
+
+    // Generate reset token
+    const resetToken = generateResetToken();
+
+    // Create password reset record
+    const passwordReset = new PasswordReset({
+      email,
+      token: resetToken,
+      userId: user._id
+    });
+
+    await passwordReset.save();
+
+    // Send password reset email
+    console.log('Attempting to send password reset email to:', email);
+    const emailResult = await sendPasswordResetEmail(email, resetToken, user.firstName);
+
+    if (!emailResult.success) {
+      console.error('❌ Failed to send password reset email:', emailResult.error);
+      // Still return success to user for security
+    } else {
+      console.log('✅ Password reset email sent successfully to:', email);
+    }
+
+    res.json({
+      success: true,
+      message: successMessage
+    });
+
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error. Please try again later.',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// @route   POST /api/auth/reset-password
+// @desc    Reset password using token
+// @access  Public
+router.post('/reset-password', [
+  body('token')
+    .notEmpty()
+    .withMessage('Reset token is required'),
+  body('password')
+    .isLength({ min: 6 })
+    .withMessage('Password must be at least 6 characters long')
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+    .withMessage('Password must contain at least one uppercase letter, one lowercase letter, and one number'),
+  body('confirmPassword')
+    .custom((value, { req }) => {
+      if (value !== req.body.password) {
+        throw new Error('Passwords do not match');
+      }
+      return true;
+    })
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    const { token, password } = req.body;
+
+    // Find password reset record
+    const passwordReset = await PasswordReset.findOne({
+      token,
+      used: false
+    });
+
+    if (!passwordReset) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or expired reset token. Please request a new password reset.'
+      });
+    }
+
+    // Check if token has expired
+    if (passwordReset.expiresAt < new Date()) {
+      await PasswordReset.deleteOne({ _id: passwordReset._id });
+      return res.status(400).json({
+        success: false,
+        message: 'Reset token has expired. Please request a new password reset.'
+      });
+    }
+
+    // Check attempts (prevent brute force)
+    if (passwordReset.attempts >= 5) {
+      await PasswordReset.deleteOne({ _id: passwordReset._id });
+      return res.status(400).json({
+        success: false,
+        message: 'Too many failed attempts. Please request a new password reset.'
+      });
+    }
+
+    // Find user
+    const user = await User.findById(passwordReset.userId).select('+password');
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found.'
+      });
+    }
+
+    // Check if new password is same as old password
+    const isSamePassword = await user.comparePassword(password);
+    if (isSamePassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'New password must be different from your current password.'
+      });
+    }
+
+    // Update password
+    user.password = password;
+    await user.save();
+
+    // Mark reset token as used
+    passwordReset.used = true;
+    await passwordReset.save();
+
+    // Reset login attempts if any
+    if (user.loginAttempts > 0) {
+      await user.resetLoginAttempts();
+    }
+
+    // Send confirmation email
+    await sendPasswordResetConfirmation(user.email, user.firstName);
+
+    res.json({
+      success: true,
+      message: 'Password reset successful! You can now log in with your new password.'
+    });
+
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error. Please try again later.',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// @route   GET /api/auth/verify-reset-token/:token
+// @desc    Verify if reset token is valid (for frontend validation)
+// @access  Public
+router.get('/verify-reset-token/:token', async (req, res) => {
+  try {
+    const { token } = req.params;
+
+    const passwordReset = await PasswordReset.findOne({
+      token,
+      used: false
+    });
+
+    if (!passwordReset) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or expired reset token.'
+      });
+    }
+
+    if (passwordReset.expiresAt < new Date()) {
+      await PasswordReset.deleteOne({ _id: passwordReset._id });
+      return res.status(400).json({
+        success: false,
+        message: 'Reset token has expired.'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Token is valid',
+      data: {
+        email: passwordReset.email
+      }
+    });
+
+  } catch (error) {
+    console.error('Verify reset token error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error',

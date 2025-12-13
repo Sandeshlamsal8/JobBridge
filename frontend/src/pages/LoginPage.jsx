@@ -120,9 +120,14 @@ function LoginPage({ onNavigate }) {
 
                         <div className="flex justify-end">
                             <div className="text-sm">
-                                <a href="#" className="text-primary-400 hover:text-primary-300 transition-colors font-semibold">
+                                <button
+                                    type="button"
+                                    onClick={() => onNavigate && onNavigate("forgot-password")}
+                                    className="text-primary-400 hover:text-primary-300 transition-colors font-semibold"
+                                    disabled={isLoading}
+                                >
                                     Forgot password?
-                                </a>
+                                </button>
                             </div>
                         </div>
 
