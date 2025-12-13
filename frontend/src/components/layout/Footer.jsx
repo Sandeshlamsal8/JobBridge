@@ -1,4 +1,8 @@
+import { useState } from 'react';
+import LegalModal from '../LegalModal';
+
 function Footer({ user }) {
+  const [legalModal, setLegalModal] = useState({ isOpen: false, type: null });
   // Minimized footer for authenticated users
   if (user) {
     return (
@@ -13,12 +17,18 @@ function Footer({ user }) {
               </p>
             </div>
             <div className="flex flex-wrap justify-center gap-6 text-sm text-slate-400">
-              <a href="#" className="hover:text-primary-400 transition-colors">
+              <button
+                onClick={() => setLegalModal({ isOpen: true, type: 'privacy' })}
+                className="hover:text-primary-400 transition-colors"
+              >
                 Privacy Policy
-              </a>
-              <a href="#" className="hover:text-primary-400 transition-colors">
+              </button>
+              <button
+                onClick={() => setLegalModal({ isOpen: true, type: 'terms' })}
+                className="hover:text-primary-400 transition-colors"
+              >
                 Terms of Service
-              </a>
+              </button>
               <a href="#" className="hover:text-primary-400 transition-colors">
                 Contact
               </a>
@@ -28,6 +38,13 @@ function Footer({ user }) {
             </div>
           </div>
         </div>
+
+        {/* Legal Modal */}
+        <LegalModal
+          isOpen={legalModal.isOpen}
+          onClose={() => setLegalModal({ isOpen: false, type: null })}
+          type={legalModal.type}
+        />
       </footer>
     );
   }
@@ -178,18 +195,18 @@ function Footer({ user }) {
               &copy; 2025 JobBridge. All rights reserved.
             </p>
             <div className="flex space-x-8 text-slate-400">
-              <a
-                href="#"
+              <button
+                onClick={() => setLegalModal({ isOpen: true, type: 'privacy' })}
                 className="hover:text-primary-400 transition-colors font-medium"
               >
                 Privacy Policy
-              </a>
-              <a
-                href="#"
+              </button>
+              <button
+                onClick={() => setLegalModal({ isOpen: true, type: 'terms' })}
                 className="hover:text-primary-400 transition-colors font-medium"
               >
                 Terms of Service
-              </a>
+              </button>
               <a
                 href="#"
                 className="hover:text-primary-400 transition-colors font-medium"
@@ -200,6 +217,13 @@ function Footer({ user }) {
           </div>
         </div>
       </div>
+
+      {/* Legal Modal */}
+      <LegalModal
+        isOpen={legalModal.isOpen}
+        onClose={() => setLegalModal({ isOpen: false, type: null })}
+        type={legalModal.type}
+      />
     </footer>
   );
 }

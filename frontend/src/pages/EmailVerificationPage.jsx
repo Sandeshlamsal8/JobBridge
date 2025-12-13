@@ -83,16 +83,27 @@ function EmailVerificationPage({ email, onNavigate, onVerificationSuccess }) {
         setError("");
 
         try {
-            const response = await authAPI.verifyEmail({ email, pin: pinCode });
+            // Call API directly without storing token (no auto-login)
+            const response = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000/api"}/auth/verify-email`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ email, pin: pinCode }),
+            });
 
-            if (response.success) {
+            const data = await response.json();
+
+            if (data.success) {
                 setSuccess(true);
-                // Call the success callback with user data and token
-                if (onVerificationSuccess) {
-                    onVerificationSuccess(response.data);
-                }
+                // Account created successfully, redirect to login after delay
+                setTimeout(() => {
+                    if (onVerificationSuccess) {
+                        onVerificationSuccess(data.data);
+                    }
+                }, 2000); // 2 second delay to show success message
             } else {
-                setError(response.message || "Invalid PIN. Please try again.");
+                setError(data.message || "Invalid PIN. Please try again.");
                 setPin(["", "", "", "", "", ""]);
                 inputRefs.current[0]?.focus();
             }
@@ -139,9 +150,9 @@ function EmailVerificationPage({ email, onNavigate, onVerificationSuccess }) {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                             </svg>
                         </div>
-                        <h2 className="text-2xl font-bold text-slate-100 mb-3">Email Verified!</h2>
-                        <p className="text-slate-300 mb-6">Your account has been created successfully.</p>
-                        <p className="text-slate-400 text-sm">Redirecting to dashboard...</p>
+                        <h2 className="text-2xl font-bold text-slate-100 mb-3">Account Created!</h2>
+                        <p className="text-slate-300 mb-6">Your email has been verified successfully.</p>
+                        <p className="text-slate-400 text-sm">Redirecting to login page...</p>
                     </div>
                 </div>
             </div>

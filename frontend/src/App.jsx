@@ -28,14 +28,10 @@ function AppContent() {
     setPageData(data);
   };
 
-  // Handle verification success
+  // Handle verification success - redirect to login page
   const handleVerificationSuccess = async (data) => {
-    // User is now logged in via AuthContext
-    if (data.user.userType === "jobseeker") {
-      setCurrentPage("jobseeker-dashboard");
-    } else if (data.user.userType === "employer") {
-      setCurrentPage("employer-dashboard");
-    }
+    // Account created successfully, redirect to login page
+    setCurrentPage("login");
   };
 
   // Redirect to appropriate dashboard after login
