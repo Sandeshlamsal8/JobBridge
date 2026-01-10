@@ -37,16 +37,18 @@ function ApplicationReviewPage({ onNavigate, applicationId }) {
 
     try {
       const token = sessionStorage.getItem("jobbridge_token");
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/applications/${applicationId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const apiUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/applications/${applicationId}`;
+      console.log('Fetching application from:', apiUrl);
+      
+      const response = await fetch(apiUrl, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
+      console.log('Response status:', response.status);
       const data = await response.json();
+      console.log('Response data:', data);
 
       if (data.success) {
         setApplication(data.data.application);
@@ -55,7 +57,7 @@ function ApplicationReviewPage({ onNavigate, applicationId }) {
       }
     } catch (error) {
       console.error("Error fetching application:", error);
-      setError("Failed to load application. Please try again.");
+      setError(`Failed to load application: ${error.message}`);
     } finally {
       setIsLoading(false);
     }
@@ -339,6 +341,97 @@ function ApplicationReviewPage({ onNavigate, applicationId }) {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
+            {/* Resume/CV */}
+            {application.resume && (
+              <div className="glass-card p-6 rounded-3xl animate-slide-up">
+                <h2 className="text-2xl font-bold text-slate-100 mb-4 flex items-center gap-2">
+                  <svg
+                    className="w-6 h-6 text-primary-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  </svg>
+                  Resume / CV
+                </h2>
+                <div className="bg-dark-800/50 rounded-xl p-4 border border-dark-700">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 bg-primary-500/20 rounded-lg flex items-center justify-center">
+                        <svg
+                          className="w-6 h-6 text-primary-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                          />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="text-slate-100 font-semibold">
+                          {application.resume.originalName}
+                        </p>
+                        <p className="text-sm text-slate-400">
+                          {application.resume.size
+                            ? `${(application.resume.size / 1024).toFixed(2)} KB`
+                            : "Unknown size"}{" "}
+                          • Uploaded{" "}
+                          {application.resume.uploadedAt
+                            ? new Date(
+                                application.resume.uploadedAt
+                              ).toLocaleDateString()
+                            : "recently"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <a
+                        href={`${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'}/${application.resume.path.replace(/\\/g, '/')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn-primary px-4 py-2 text-sm flex items-center gap-2"
+                        onClick={(e) => {
+                          console.log('Resume URL:', e.currentTarget.href);
+                        }}
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                          />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                          />
+                        </svg>
+                        View Resume
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Cover Letter */}
             {application.coverLetter && (
               <div className="glass-card p-6 rounded-3xl animate-slide-up">
@@ -361,6 +454,95 @@ function ApplicationReviewPage({ onNavigate, applicationId }) {
                   ${application.expectedSalary.amount?.toLocaleString()} /{" "}
                   {application.expectedSalary.period}
                 </p>
+              </div>
+            )}
+
+            {/* Additional Documents */}
+            {application.additionalDocuments && application.additionalDocuments.length > 0 && (
+              <div className="glass-card p-6 rounded-3xl animate-slide-up">
+                <h2 className="text-2xl font-bold text-slate-100 mb-4 flex items-center gap-2">
+                  <svg
+                    className="w-6 h-6 text-primary-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  </svg>
+                  Additional Documents
+                </h2>
+                <div className="space-y-3">
+                  {application.additionalDocuments.map((doc, index) => (
+                    <div
+                      key={index}
+                      className="bg-dark-800/50 rounded-xl p-4 border border-dark-700"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-primary-500/20 rounded-lg flex items-center justify-center">
+                            <svg
+                              className="w-5 h-5 text-primary-400"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                              />
+                            </svg>
+                          </div>
+                          <div>
+                            <p className="text-slate-100 font-medium">
+                              {doc.originalName}
+                            </p>
+                            <p className="text-xs text-slate-400">
+                              {doc.size
+                                ? `${(doc.size / 1024).toFixed(2)} KB`
+                                : "Unknown size"}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <a
+                            href={`${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'}/${doc.path.replace(/\\/g, '/')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn-primary px-3 py-1.5 text-xs flex items-center gap-1"
+                          >
+                            <svg
+                              className="w-3 h-3"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                              />
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                              />
+                            </svg>
+                            View
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
@@ -541,6 +723,69 @@ function ApplicationReviewPage({ onNavigate, applicationId }) {
                     </svg>
                     Call Candidate
                   </a>
+                )}
+              </div>
+            </div>
+
+            {/* Quick Info */}
+            <div className="glass-card p-6 rounded-3xl animate-slide-up">
+              <h2 className="text-xl font-bold text-slate-100 mb-4">
+                Application Info
+              </h2>
+              <div className="space-y-3 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">Resume</span>
+                  {application.resume ? (
+                    <span className="text-green-400 flex items-center gap-1">
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
+                      Attached
+                    </span>
+                  ) : (
+                    <span className="text-slate-500">Not provided</span>
+                  )}
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">Cover Letter</span>
+                  {application.coverLetter ? (
+                    <span className="text-green-400 flex items-center gap-1">
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
+                      Provided
+                    </span>
+                  ) : (
+                    <span className="text-slate-500">Not provided</span>
+                  )}
+                </div>
+                {application.additionalDocuments && application.additionalDocuments.length > 0 && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">Additional Docs</span>
+                    <span className="text-primary-400 font-medium">
+                      {application.additionalDocuments.length}
+                    </span>
+                  </div>
                 )}
               </div>
             </div>

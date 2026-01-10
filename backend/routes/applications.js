@@ -86,7 +86,7 @@ router.post(
       if (existingApplication) {
         return res.status(400).json({
           success: false,
-          message: "You have already applied for this job",
+          message: `You have already applied for this job. Your application status is: ${existingApplication.status}`,
         });
       }
 
@@ -99,7 +99,7 @@ router.post(
         resume: {
           filename: req.file.filename,
           originalName: req.file.originalname,
-          path: req.file.path,
+          path: `uploads/${req.file.filename}`, // Use relative path with forward slashes
           size: req.file.size,
           uploadedAt: new Date(),
         },
@@ -129,6 +129,15 @@ router.post(
       });
     } catch (error) {
       console.error("Apply for job error:", error);
+      
+      // Handle duplicate key error
+      if (error.code === 11000) {
+        return res.status(400).json({
+          success: false,
+          message: "You have already applied for this job. Please check your applications.",
+        });
+      }
+      
       res.status(500).json({
         success: false,
         message: "Server error",
