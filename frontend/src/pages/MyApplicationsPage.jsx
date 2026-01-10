@@ -3,12 +3,16 @@ import { useAuth } from "../contexts/AuthContext";
 import { applicationAPI } from "../utils/api";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
+import Toast from "../components/ui/Toast";
+import { useToast } from "../hooks/useToast";
 
 function MyApplicationsPage({ onNavigate }) {
   const { user, logout } = useAuth();
   const [loading, setLoading] = useState(true);
   const [applications, setApplications] = useState([]);
   const [filter, setFilter] = useState("all");
+  const [withdrawing, setWithdrawing] = useState(null);
+  const { toast, showSuccess, showError, hideToast } = useToast();
 
   useEffect(() => {
     fetchApplications();
@@ -38,10 +42,13 @@ function MyApplicationsPage({ onNavigate }) {
     const statusMap = {
       pending: "text-yellow-400 bg-yellow-400/20 border-yellow-400/30",
       reviewed: "text-blue-400 bg-blue-400/20 border-blue-400/30",
-      "interview-scheduled":
-        "text-green-400 bg-green-400/20 border-green-400/30",
-      accepted: "text-green-500 bg-green-500/20 border-green-500/30",
+      shortlisted: "text-cyan-400 bg-cyan-400/20 border-cyan-400/30",
+      "interview-scheduled": "text-green-400 bg-green-400/20 border-green-400/30",
+      "interview-completed": "text-purple-400 bg-purple-400/20 border-purple-400/30",
+      offered: "text-emerald-400 bg-emerald-400/20 border-emerald-400/30",
+      hired: "text-green-500 bg-green-500/20 border-green-500/30",
       rejected: "text-red-400 bg-red-400/20 border-red-400/30",
+      withdrawn: "text-slate-400 bg-slate-400/20 border-slate-400/30",
     };
     return (
       statusMap[status] || "text-slate-400 bg-slate-400/20 border-slate-400/30"
@@ -71,6 +78,44 @@ function MyApplicationsPage({ onNavigate }) {
   const handleLogout = async () => {
     await logout();
     onNavigate("home");
+  };
+
+  const handleWithdraw = async (applicationId) => {
+    setWithdrawing(applicationId);
+    
+    try {
+      const token = sessionStorage.getItem("jobbridge_token");
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/applications/${applicationId}/withdraw`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Update the application status locally
+        setApplications(prev =>
+          prev.map(app =>
+            app._id === applicationId
+              ? { ...app, status: "withdrawn" }
+              : app
+          )
+        );
+        showSuccess("Application withdrawn successfully");
+      } else {
+        showError(data.message || "Failed to withdraw application");
+      }
+    } catch (error) {
+      console.error("Error withdrawing application:", error);
+      showError("Failed to withdraw application. Please try again.");
+    } finally {
+      setWithdrawing(null);
+    }
   };
 
   return (
@@ -112,9 +157,12 @@ function MyApplicationsPage({ onNavigate }) {
               { value: "all", label: "All Applications" },
               { value: "pending", label: "Pending" },
               { value: "reviewed", label: "Reviewed" },
+              { value: "shortlisted", label: "Shortlisted" },
               { value: "interview-scheduled", label: "Interview" },
-              { value: "accepted", label: "Accepted" },
+              { value: "offered", label: "Offered" },
+              { value: "hired", label: "Hired" },
               { value: "rejected", label: "Rejected" },
+              { value: "withdrawn", label: "Withdrawn" },
             ].map((item) => (
               <button
                 key={item.value}
@@ -201,32 +249,46 @@ function MyApplicationsPage({ onNavigate }) {
                         onClick={() =>
                           onNavigate(`job-details/${application.job?._id}`)
                         }
-                        className="btn-secondary px-4 py-2 text-sm"
+                        className="btn-primary px-4 py-2 text-sm"
                       >
                         View Job
                       </button>
-                      <button
-                        onClick={() =>
-                          onNavigate(`application-details/${application._id}`)
-                        }
-                        className="btn-primary px-4 py-2 text-sm"
-                      >
-                        View Details
-                      </button>
                       {application.status === "pending" && (
                         <button
-                          onClick={() => {
-                            if (
-                              confirm(
-                                "Are you sure you want to withdraw this application?"
-                              )
-                            ) {
-                              // Handle withdrawal
-                            }
-                          }}
-                          className="btn-secondary px-4 py-2 text-sm text-red-400 hover:bg-red-400/10"
+                          onClick={() => handleWithdraw(application._id)}
+                          disabled={withdrawing === application._id}
+                          className={`px-4 py-2 text-sm rounded-xl font-semibold transition-all ${
+                            withdrawing === application._id
+                              ? "bg-slate-700 text-slate-400 cursor-not-allowed"
+                              : "border-2 border-red-400/60 text-red-400 hover:bg-red-400/10 hover:border-red-400 backdrop-blur-sm"
+                          }`}
                         >
-                          Withdraw
+                          {withdrawing === application._id ? (
+                            <>
+                              <svg
+                                className="w-4 h-4 animate-spin inline mr-1"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                              >
+                                <circle
+                                  className="opacity-25"
+                                  cx="12"
+                                  cy="12"
+                                  r="10"
+                                  stroke="currentColor"
+                                  strokeWidth="4"
+                                ></circle>
+                                <path
+                                  className="opacity-75"
+                                  fill="currentColor"
+                                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                ></path>
+                              </svg>
+                              Withdrawing...
+                            </>
+                          ) : (
+                            "Withdraw"
+                          )}
                         </button>
                       )}
                     </div>
@@ -269,6 +331,14 @@ function MyApplicationsPage({ onNavigate }) {
       </div>
 
       <Footer user={user} />
+      
+      {/* Toast Notification */}
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        isVisible={toast.isVisible}
+        onClose={hideToast}
+      />
     </div>
   );
 }

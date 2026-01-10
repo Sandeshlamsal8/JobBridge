@@ -113,45 +113,6 @@ function JobListingsPage({ onNavigate }) {
     }));
   };
 
-  const handleApply = async (jobId) => {
-    if (!user) {
-      onNavigate("login");
-      return;
-    }
-
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/applications`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${sessionStorage.getItem("jobbridge_token")}`,
-          },
-          body: JSON.stringify({ jobId }),
-        }
-      );
-
-      const data = await response.json();
-
-      if (data.success) {
-        // Update the job's application count locally
-        setJobs((prev) =>
-          prev.map((job) =>
-            job._id === jobId
-              ? { ...job, applicationCount: job.applicationCount + 1 }
-              : job
-          )
-        );
-        alert("Application submitted successfully!");
-      } else {
-        alert(data.message || "Failed to apply for job");
-      }
-    } catch (error) {
-      alert("Network error. Please try again.");
-    }
-  };
-
   const handleLogout = async () => {
     await logout();
     onNavigate("home");
@@ -443,14 +404,11 @@ function JobListingsPage({ onNavigate }) {
                     <span>{job.viewCount} views</span>
                   </div>
                   <div className="flex gap-3">
-                    <button className="btn-secondary text-sm px-4 py-2">
-                      View Details
-                    </button>
-                    <button
-                      onClick={() => handleApply(job._id)}
-                      className="btn-primary text-sm px-4 py-2"
+                    <button 
+                      onClick={() => onNavigate(`job-details/${job._id}`)}
+                      className="btn-primary text-sm px-4 py-2 w-full"
                     >
-                      Apply Now
+                      View Details
                     </button>
                   </div>
                 </div>

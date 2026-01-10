@@ -228,8 +228,9 @@ const applicationSchema = new mongoose.Schema(
   }
 );
 
-// Compound index to prevent duplicate applications
-applicationSchema.index({ job: 1, applicant: 1 }, { unique: true });
+// Regular index for query performance (no uniqueness constraint)
+// Uniqueness is handled in application logic to allow re-application after withdrawal
+applicationSchema.index({ job: 1, applicant: 1 });
 
 // Indexes for better query performance
 applicationSchema.index({ employer: 1, status: 1, createdAt: -1 });

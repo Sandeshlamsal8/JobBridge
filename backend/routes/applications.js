@@ -7,6 +7,7 @@ const {
   requireUserType,
   requireAnyUserType,
 } = require("../middleware/auth");
+const upload = require("../middleware/upload");
 
 const router = express.Router();
 
@@ -18,6 +19,7 @@ router.post(
   [
     auth,
     requireUserType("jobseeker"),
+    upload.single('cv'), // Handle CV file upload
     body("jobId").isMongoId().withMessage("Invalid job ID"),
     body("coverLetter")
       .optional()
@@ -31,10 +33,6 @@ router.post(
       .optional()
       .isIn(["hourly", "monthly", "yearly"])
       .withMessage("Invalid salary period"),
-    body("availableStartDate")
-      .optional()
-      .isISO8601()
-      .withMessage("Invalid start date format"),
   ],
   async (req, res) => {
     try {
@@ -47,11 +45,18 @@ router.post(
         });
       }
 
+      // Check if CV file was uploaded
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          message: "CV file is required",
+        });
+      }
+
       const {
         jobId,
         coverLetter,
         expectedSalary,
-        availableStartDate,
         questionsAnswers,
       } = req.body;
 
@@ -71,10 +76,11 @@ router.post(
         });
       }
 
-      // Check if user already applied
+      // Check if user already applied (excluding withdrawn applications)
       const existingApplication = await Application.findOne({
         job: jobId,
         applicant: req.user.userId,
+        status: { $ne: "withdrawn" }, // Exclude withdrawn applications
       });
 
       if (existingApplication) {
@@ -84,14 +90,24 @@ router.post(
         });
       }
 
-      // Create application
+      // Create application with CV file info
       const application = new Application({
         job: jobId,
         applicant: req.user.userId,
         employer: job.company._id,
         coverLetter,
-        expectedSalary,
-        availableStartDate,
+        resume: {
+          filename: req.file.filename,
+          originalName: req.file.originalname,
+          path: req.file.path,
+          size: req.file.size,
+          uploadedAt: new Date(),
+        },
+        expectedSalary: expectedSalary ? {
+          amount: expectedSalary.amount,
+          period: expectedSalary.period || 'yearly',
+          currency: 'USD'
+        } : undefined,
         questionsAnswers,
       });
 
@@ -131,10 +147,11 @@ router.get(
   [auth, requireUserType("jobseeker")],
   async (req, res) => {
     try {
-      const { status, page = 1, limit = 10 } = req.query;
+      const { status, jobId, page = 1, limit = 10 } = req.query;
 
       const filters = { applicant: req.user.userId };
       if (status) filters.status = status;
+      if (jobId) filters.job = jobId;
 
       const applications = await Application.getByApplicant(
         req.user.userId,

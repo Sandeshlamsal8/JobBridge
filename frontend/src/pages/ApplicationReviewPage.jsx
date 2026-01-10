@@ -364,18 +364,6 @@ function ApplicationReviewPage({ onNavigate, applicationId }) {
               </div>
             )}
 
-            {/* Available Start Date */}
-            {application.availableStartDate && (
-              <div className="glass-card p-6 rounded-3xl animate-slide-up">
-                <h2 className="text-2xl font-bold text-slate-100 mb-4">
-                  Available Start Date
-                </h2>
-                <p className="text-lg text-slate-300">
-                  {formatDate(application.availableStartDate)}
-                </p>
-              </div>
-            )}
-
             {/* Notes */}
             <div className="glass-card p-6 rounded-3xl animate-slide-up">
               <div className="flex justify-between items-center mb-4">

@@ -493,16 +493,10 @@ function JobSeekerDashboard({ onNavigate }) {
                         </div>
                         <div className="flex gap-3">
                           <button
-                            onClick={() => onNavigate("job-listings")}
-                            className="btn-secondary text-sm px-4 py-2 flex-1"
+                            onClick={() => onNavigate(`job-details/${job._id}`)}
+                            className="btn-primary text-sm px-4 py-2 w-full"
                           >
                             View Details
-                          </button>
-                          <button
-                            onClick={() => onNavigate("job-listings")}
-                            className="btn-primary text-sm px-4 py-2 flex-1"
-                          >
-                            Apply Now
                           </button>
                         </div>
                       </div>

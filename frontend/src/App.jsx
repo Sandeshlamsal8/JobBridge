@@ -18,6 +18,7 @@ import AccountSettings from "./pages/AccountSettings";
 import CompanyVerificationPage from "./pages/CompanyVerificationPage";
 import CandidateProfilePage from "./pages/CandidateProfilePage";
 import ApplicationReviewPage from "./pages/ApplicationReviewPage";
+import JobDetailsPage from "./pages/JobDetailsPage";
 
 function AppContent() {
   const { user, isAuthenticated, isLoading, verifyEmail } = useAuth();
@@ -185,6 +186,17 @@ function AppContent() {
             />
           ) : (
             <HomePage onNavigate={handleNavigate} />
+          );
+        }
+
+        // Dynamic Routes - Job Details
+        if (currentPage.startsWith("job-details/")) {
+          const jobId = currentPage.split("/")[1];
+          return (
+            <JobDetailsPage
+              onNavigate={handleNavigate}
+              jobId={jobId}
+            />
           );
         }
         // If user is authenticated, redirect to their dashboard

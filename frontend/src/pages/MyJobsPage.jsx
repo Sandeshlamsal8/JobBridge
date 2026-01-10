@@ -3,11 +3,14 @@ import { useAuth } from "../contexts/AuthContext";
 import { jobAPI } from "../utils/api";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
+import Toast from "../components/ui/Toast";
+import { useToast } from "../hooks/useToast";
 
 function MyJobsPage({ onNavigate }) {
   const { user, logout } = useAuth();
   const [loading, setLoading] = useState(true);
   const [jobs, setJobs] = useState([]);
+  const { toast, showInfo, hideToast } = useToast();
   const [filter, setFilter] = useState("all");
   const [pagination, setPagination] = useState({
     currentPage: 1,
@@ -252,9 +255,7 @@ function MyJobsPage({ onNavigate }) {
                       <div className="flex flex-wrap gap-3">
                         <button
                           onClick={() => {
-                            alert(
-                              "Edit functionality coming soon! For now, you can create a new job or manage status."
-                            );
+                            showInfo("Edit functionality coming soon! For now, you can create a new job or manage status.");
                           }}
                           className="btn-secondary px-4 py-2 text-sm"
                         >
@@ -268,17 +269,7 @@ function MyJobsPage({ onNavigate }) {
                         </button>
                         <button
                           onClick={() => {
-                            alert(
-                              `Job Details:\n\nTitle: ${job.title}\nLocation: ${
-                                job.location
-                              }\nType: ${job.jobType}\nStatus: ${
-                                job.status
-                              }\nApplications: ${
-                                job.applicationCount || 0
-                              }\nViews: ${
-                                job.viewCount || 0
-                              }\nPosted: ${formatDate(job.createdAt)}`
-                            );
+                            showInfo(`Job Details: ${job.title} • ${job.location} • ${job.jobType} • ${job.status} • ${job.applicationCount || 0} applications • ${job.viewCount || 0} views`);
                           }}
                           className="btn-secondary px-4 py-2 text-sm"
                         >
@@ -347,6 +338,14 @@ function MyJobsPage({ onNavigate }) {
       </div>
 
       <Footer user={user} />
+      
+      {/* Toast Notification */}
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        isVisible={toast.isVisible}
+        onClose={hideToast}
+      />
     </div>
   );
 }
