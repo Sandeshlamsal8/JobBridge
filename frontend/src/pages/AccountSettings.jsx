@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
+import PasswordStrength from "../components/PasswordStrength";
 
 function AccountSettings({ onNavigate }) {
   const { user, logout } = useAuth();
@@ -16,6 +17,7 @@ function AccountSettings({ onNavigate }) {
     newPassword: "",
     confirmPassword: "",
   });
+  const [passwordStrength, setPasswordStrength] = useState(null);
 
   // Notification settings state
   const [notifications, setNotifications] = useState({
@@ -24,10 +26,6 @@ function AccountSettings({ onNavigate }) {
     jobAlerts: false,
     marketingEmails: false,
   });
-
-  // Profile picture state
-  const [selectedImage, setSelectedImage] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
 
   useEffect(() => {
     fetchUserProfile();
@@ -63,72 +61,6 @@ function AccountSettings({ onNavigate }) {
     onNavigate("home");
   };
 
-  const handleImageSelect = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        setMessage({ type: "error", text: "Image size must be less than 5MB" });
-        return;
-      }
-      setSelectedImage(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleUploadProfilePicture = async () => {
-    if (!selectedImage) {
-      setMessage({ type: "error", text: "Please select an image first" });
-      return;
-    }
-
-    setIsLoading(true);
-    setMessage({ type: "", text: "" });
-
-    try {
-      const formData = new FormData();
-      formData.append("profilePicture", selectedImage);
-
-      const token = sessionStorage.getItem("jobbridge_token");
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/users/profile-picture`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          body: formData,
-        }
-      );
-
-      const data = await response.json();
-
-      if (data.success) {
-        setMessage({
-          type: "success",
-          text: "Profile picture updated successfully",
-        });
-        setSelectedImage(null);
-        setImagePreview(null);
-      } else {
-        setMessage({
-          type: "error",
-          text: data.message || "Failed to update profile picture",
-        });
-      }
-    } catch (error) {
-      setMessage({
-        type: "error",
-        text: "An error occurred. Please try again.",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleChangePassword = async (e) => {
     e.preventDefault();
 
@@ -142,6 +74,11 @@ function AccountSettings({ onNavigate }) {
         type: "error",
         text: "Password must be at least 6 characters",
       });
+      return;
+    }
+
+    if (passwordStrength && passwordStrength.score < 3) {
+      setMessage({ type: "error", text: "Please choose a stronger password" });
       return;
     }
 
@@ -168,7 +105,10 @@ function AccountSettings({ onNavigate }) {
       const data = await response.json();
 
       if (data.success) {
-        setMessage({ type: "success", text: "Password changed successfully" });
+        setMessage({
+          type: "success",
+          text: "Password changed successfully! A confirmation email has been sent.",
+        });
         setPasswordData({
           currentPassword: "",
           newPassword: "",
@@ -318,66 +258,6 @@ function AccountSettings({ onNavigate }) {
         )}
 
         <div className="space-y-6">
-          {/* Profile Picture Section */}
-          <div className="glass-card p-6 rounded-2xl">
-            <h2 className="text-xl font-bold text-slate-100 mb-4 flex items-center gap-2">
-              <svg
-                className="w-5 h-5 text-primary-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                />
-              </svg>
-              Profile Picture
-            </h2>
-            <div className="flex items-center gap-6">
-              <div className="w-24 h-24 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center text-white font-bold text-3xl overflow-hidden">
-                {imagePreview ? (
-                  <img
-                    src={imagePreview}
-                    alt="Preview"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  `${user?.firstName?.[0]}${user?.lastName?.[0]}`
-                )}
-              </div>
-              <div className="flex-1">
-                <input
-                  type="file"
-                  id="profilePicture"
-                  accept="image/*"
-                  onChange={handleImageSelect}
-                  className="hidden"
-                />
-                <label
-                  htmlFor="profilePicture"
-                  className="btn-secondary px-4 py-2 text-sm cursor-pointer inline-block"
-                >
-                  Choose Image
-                </label>
-                {selectedImage && (
-                  <button
-                    onClick={handleUploadProfilePicture}
-                    disabled={isLoading}
-                    className="btn-primary px-4 py-2 text-sm ml-3"
-                  >
-                    {isLoading ? "Uploading..." : "Upload"}
-                  </button>
-                )}
-                <p className="text-slate-400 text-sm mt-2">
-                  JPG, PNG or GIF. Max size 5MB.
-                </p>
-              </div>
-            </div>
-          </div>
-
           {/* Change Password Section */}
           <div className="glass-card p-6 rounded-2xl">
             <h2 className="text-xl font-bold text-slate-100 mb-4 flex items-center gap-2">
@@ -430,6 +310,10 @@ function AccountSettings({ onNavigate }) {
                   className="input-field"
                   required
                 />
+                <PasswordStrength
+                  password={passwordData.newPassword}
+                  onStrengthChange={setPasswordStrength}
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">
@@ -447,6 +331,12 @@ function AccountSettings({ onNavigate }) {
                   className="input-field"
                   required
                 />
+                {passwordData.confirmPassword &&
+                  passwordData.newPassword !== passwordData.confirmPassword && (
+                    <p className="text-red-400 text-sm mt-2">
+                      Passwords do not match
+                    </p>
+                  )}
               </div>
               <button
                 type="submit"
@@ -728,7 +618,7 @@ function AccountSettings({ onNavigate }) {
         </div>
       )}
 
-      <Footer user={user} />
+      <Footer user={user} onNavigate={onNavigate} />
     </div>
   );
 }

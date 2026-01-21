@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
+import { showToast } from "../components/ToastContainer";
+import { isCompanyProfileComplete } from "../utils/companyProfile";
 import { jobAPI } from "../utils/api";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
@@ -17,6 +19,19 @@ function MyJobsPage({ onNavigate }) {
     totalPages: 1,
     totalJobs: 0,
   });
+
+  // Check if company profile is complete
+  useEffect(() => {
+    if (!isCompanyProfileComplete(user)) {
+      showToast(
+        "Please complete your company profile to manage jobs",
+        "warning",
+        5000
+      );
+      onNavigate("employer-dashboard");
+      return;
+    }
+  }, [user, onNavigate]);
 
   useEffect(() => {
     fetchJobs();
@@ -67,6 +82,43 @@ function MyJobsPage({ onNavigate }) {
   const handleLogout = async () => {
     await logout();
     onNavigate("home");
+  };
+
+  const handleCloseJob = async (jobId) => {
+    if (
+      !confirm(
+        "Are you sure you want to close this job listing? This will stop accepting new applications."
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const token = sessionStorage.getItem("jobbridge_token");
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/jobs/${jobId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ status: "closed" }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        showToast("Job listing closed successfully!", "success", 3000);
+        fetchJobs(); // Refresh the jobs list
+      } else {
+        showToast(data.message || "Failed to close job", "error", 3000);
+      }
+    } catch (error) {
+      console.error("Error closing job:", error);
+      showToast("Network error. Please try again.", "error", 3000);
+    }
   };
 
   return (
@@ -254,27 +306,64 @@ function MyJobsPage({ onNavigate }) {
 
                       <div className="flex flex-wrap gap-3">
                         <button
-                          onClick={() => {
-                            showInfo("Edit functionality coming soon! For now, you can create a new job or manage status.");
-                          }}
-                          className="btn-secondary px-4 py-2 text-sm"
+                          onClick={() => onNavigate(`edit-job/${job._id}`)}
+                          className="btn-secondary px-4 py-2 text-sm flex items-center gap-2"
                         >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                            />
+                          </svg>
                           Edit Job
                         </button>
                         <button
                           onClick={() => onNavigate("applications")}
-                          className="btn-primary px-4 py-2 text-sm"
+                          className="btn-primary px-4 py-2 text-sm flex items-center gap-2"
                         >
-                          View Applications
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                            />
+                          </svg>
+                          Applications ({job.applicationCount || 0})
                         </button>
-                        <button
-                          onClick={() => {
-                            showInfo(`Job Details: ${job.title} • ${job.location} • ${job.jobType} • ${job.status} • ${job.applicationCount || 0} applications • ${job.viewCount || 0} views`);
-                          }}
-                          className="btn-secondary px-4 py-2 text-sm"
-                        >
-                          View Details
-                        </button>
+                        {job.status !== "closed" && (
+                          <button
+                            onClick={() => handleCloseJob(job._id)}
+                            className="btn-secondary px-4 py-2 text-sm text-red-400 hover:text-red-300 flex items-center gap-2"
+                          >
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M6 18L18 6M6 6l12 12"
+                              />
+                            </svg>
+                            Close Job
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -337,8 +426,8 @@ function MyJobsPage({ onNavigate }) {
         )}
       </div>
 
-      <Footer user={user} />
-      
+      <Footer user={user} onNavigate={onNavigate} />
+
       {/* Toast Notification */}
       <Toast
         message={toast.message}

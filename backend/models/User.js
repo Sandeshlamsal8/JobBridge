@@ -40,8 +40,11 @@ const userSchema = new mongoose.Schema(
     },
     profile: {
       avatar: {
-        type: String,
-        default: null,
+        data: { type: Buffer, default: null },
+        contentType: { type: String, default: null },
+        filename: { type: String, default: null },
+        size: { type: Number, default: null },
+        uploadedAt: { type: Date, default: null },
       },
       phone: {
         type: String,
@@ -60,9 +63,17 @@ const userSchema = new mongoose.Schema(
         type: String,
         default: null,
       },
+      profileCompletionPromptShown: {
+        type: Boolean,
+        default: false,
+      },
     },
     // Job seeker specific fields
     jobSeekerProfile: {
+      headline: {
+        type: String,
+        default: null,
+      },
       resume: {
         type: String, // URL to resume file
         default: null,
@@ -78,9 +89,51 @@ const userSchema = new mongoose.Schema(
         enum: ["entry", "mid", "senior", "executive"],
         default: null,
       },
+      experienceLevel: {
+        type: String,
+        enum: ["entry", "mid", "senior", "executive"],
+        default: null,
+      },
+      experienceHistory: [
+        {
+          id: { type: Number },
+          title: { type: String },
+          company: { type: String },
+          location: { type: String },
+          startDate: { type: String },
+          endDate: { type: String },
+          current: { type: Boolean, default: false },
+          description: { type: String },
+        },
+      ],
+      education: [
+        {
+          id: { type: Number },
+          degree: { type: String },
+          institution: { type: String },
+          location: { type: String },
+          startDate: { type: String },
+          endDate: { type: String },
+          current: { type: Boolean, default: false },
+          description: { type: String },
+        },
+      ],
+      certifications: [
+        {
+          id: { type: Number },
+          name: { type: String },
+          issuer: { type: String },
+          issueDate: { type: String },
+          expiryDate: { type: String },
+          credentialId: { type: String },
+          url: { type: String },
+        },
+      ],
       expectedSalary: {
         min: { type: Number, default: null },
         max: { type: Number, default: null },
+        currency: { type: String, default: "USD" },
+        period: { type: String, default: "yearly" },
       },
       jobPreferences: {
         jobTypes: [
@@ -93,6 +146,17 @@ const userSchema = new mongoose.Schema(
               "internship",
               "freelance",
             ],
+          },
+        ],
+        workModes: [
+          {
+            type: String,
+            enum: ["remote", "hybrid", "onsite"],
+          },
+        ],
+        categories: [
+          {
+            type: String,
           },
         ],
         remoteWork: {
@@ -126,6 +190,14 @@ const userSchema = new mongoose.Schema(
         default: null,
       },
       companyWebsite: {
+        type: String,
+        default: null,
+      },
+      companyLocation: {
+        type: String,
+        default: null,
+      },
+      foundedYear: {
         type: String,
         default: null,
       },

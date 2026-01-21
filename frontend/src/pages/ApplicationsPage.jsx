@@ -283,7 +283,7 @@ function ApplicationsPage({ onNavigate }) {
         )}
       </div>
 
-      <Footer user={user} />
+      <Footer user={user} onNavigate={onNavigate} />
     </div>
   );
 }

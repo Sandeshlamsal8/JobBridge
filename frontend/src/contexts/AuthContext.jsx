@@ -6,6 +6,7 @@ import {
   useCallback,
   useRef,
 } from "react";
+import { showToast } from "../components/ToastContainer";
 import { authAPI, authUtils } from "../utils/api";
 
 // Session configuration
@@ -300,7 +301,11 @@ export const AuthProvider = ({ children }) => {
 
       if (response.success) {
         dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: false });
-        return { success: true, data: response.data, requiresVerification: true };
+        return {
+          success: true,
+          data: response.data,
+          requiresVerification: true,
+        };
       } else {
         dispatch({
           type: AUTH_ACTIONS.SET_ERROR,
@@ -360,6 +365,7 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     try {
       await authAPI.logout();
+      showToast("Logged out successfully", "info");
     } catch (error) {
       console.error("Logout error:", error);
     } finally {

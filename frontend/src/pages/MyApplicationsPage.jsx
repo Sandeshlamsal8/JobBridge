@@ -43,8 +43,10 @@ function MyApplicationsPage({ onNavigate }) {
       pending: "text-yellow-400 bg-yellow-400/20 border-yellow-400/30",
       reviewed: "text-blue-400 bg-blue-400/20 border-blue-400/30",
       shortlisted: "text-cyan-400 bg-cyan-400/20 border-cyan-400/30",
-      "interview-scheduled": "text-green-400 bg-green-400/20 border-green-400/30",
-      "interview-completed": "text-purple-400 bg-purple-400/20 border-purple-400/30",
+      "interview-scheduled":
+        "text-green-400 bg-green-400/20 border-green-400/30",
+      "interview-completed":
+        "text-purple-400 bg-purple-400/20 border-purple-400/30",
       offered: "text-emerald-400 bg-emerald-400/20 border-emerald-400/30",
       hired: "text-green-500 bg-green-500/20 border-green-500/30",
       rejected: "text-red-400 bg-red-400/20 border-red-400/30",
@@ -82,11 +84,13 @@ function MyApplicationsPage({ onNavigate }) {
 
   const handleWithdraw = async (applicationId) => {
     setWithdrawing(applicationId);
-    
+
     try {
       const token = sessionStorage.getItem("jobbridge_token");
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/applications/${applicationId}/withdraw`,
+        `${
+          import.meta.env.VITE_API_URL
+        }/applications/${applicationId}/withdraw`,
         {
           method: "PUT",
           headers: {
@@ -99,11 +103,9 @@ function MyApplicationsPage({ onNavigate }) {
 
       if (data.success) {
         // Update the application status locally
-        setApplications(prev =>
-          prev.map(app =>
-            app._id === applicationId
-              ? { ...app, status: "withdrawn" }
-              : app
+        setApplications((prev) =>
+          prev.map((app) =>
+            app._id === applicationId ? { ...app, status: "withdrawn" } : app
           )
         );
         showSuccess("Application withdrawn successfully");
@@ -330,8 +332,8 @@ function MyApplicationsPage({ onNavigate }) {
         )}
       </div>
 
-      <Footer user={user} />
-      
+      <Footer user={user} onNavigate={onNavigate} />
+
       {/* Toast Notification */}
       <Toast
         message={toast.message}

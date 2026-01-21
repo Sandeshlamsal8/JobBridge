@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
+import JobApplicationModal from "../components/JobApplicationModal";
 
 function JobListingsPage({ onNavigate }) {
   const { user, logout } = useAuth();
@@ -20,6 +21,15 @@ function JobListingsPage({ onNavigate }) {
     page: 1,
     limit: 12,
   });
+
+  // Application modal state
+  const [applicationModal, setApplicationModal] = useState({
+    isOpen: false,
+    job: null,
+  });
+
+  // Saved jobs state
+  const [savedJobs, setSavedJobs] = useState(new Set());
 
   const jobTypes = [
     { value: "", label: "All Types" },
@@ -88,8 +98,35 @@ function JobListingsPage({ onNavigate }) {
     }
   };
 
+  const fetchSavedJobs = async () => {
+    try {
+      const token = sessionStorage.getItem("jobbridge_token");
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/saved-jobs?limit=100`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+      if (data.success) {
+        const savedJobIds = new Set(
+          data.data.savedJobs.map((savedJob) => savedJob.job._id)
+        );
+        setSavedJobs(savedJobIds);
+      }
+    } catch (error) {
+      console.error("Failed to fetch saved jobs:", error);
+    }
+  };
+
   useEffect(() => {
     fetchJobs();
+    if (user?.userType === "jobseeker") {
+      fetchSavedJobs();
+    }
   }, [filters]);
 
   const handleFilterChange = (e) => {
@@ -116,6 +153,87 @@ function JobListingsPage({ onNavigate }) {
   const handleLogout = async () => {
     await logout();
     onNavigate("home");
+  };
+
+  const handleApplyClick = (job) => {
+    if (user?.userType !== "jobseeker") {
+      alert(
+        "Only job seekers can apply for jobs. Please login as a job seeker."
+      );
+      return;
+    }
+    setApplicationModal({ isOpen: true, job });
+  };
+
+  const handleApplicationSuccess = () => {
+    // Optionally refresh jobs or show success message
+    alert("Application submitted successfully!");
+  };
+
+  const toggleSaveJob = async (jobId) => {
+    if (user?.userType !== "jobseeker") {
+      alert("Only job seekers can save jobs. Please login as a job seeker.");
+      return;
+    }
+
+    try {
+      const token = sessionStorage.getItem("jobbridge_token");
+      const isSaved = savedJobs.has(jobId);
+
+      if (isSaved) {
+        // Find the saved job to get its ID
+        const response = await fetch(
+          `${import.meta.env.VITE_API_URL}/saved-jobs/check/${jobId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        const data = await response.json();
+
+        if (data.success && data.data.savedJob) {
+          // Remove from saved jobs
+          await fetch(
+            `${import.meta.env.VITE_API_URL}/saved-jobs/${
+              data.data.savedJob._id
+            }`,
+            {
+              method: "DELETE",
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+
+          setSavedJobs((prev) => {
+            const newSet = new Set(prev);
+            newSet.delete(jobId);
+            return newSet;
+          });
+        }
+      } else {
+        // Save the job
+        const response = await fetch(
+          `${import.meta.env.VITE_API_URL}/saved-jobs`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ jobId }),
+          }
+        );
+
+        if (response.ok) {
+          setSavedJobs((prev) => new Set([...prev, jobId]));
+        }
+      }
+    } catch (error) {
+      console.error("Failed to toggle save job:", error);
+      alert("Failed to save/unsave job. Please try again.");
+    }
   };
 
   return (
@@ -356,21 +474,37 @@ function JobListingsPage({ onNavigate }) {
                   <div className="text-right">
                     <p className="text-xs text-slate-400 mb-2">{job.timeAgo}</p>
                     <div className="flex gap-2">
-                      <button className="p-2 text-slate-400 hover:text-primary-400 transition-colors">
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
+                      {user?.userType === "jobseeker" && (
+                        <button
+                          onClick={() => toggleSaveJob(job._id)}
+                          className={`p-2 transition-colors ${
+                            savedJobs.has(job._id)
+                              ? "text-red-400 hover:text-red-300"
+                              : "text-slate-400 hover:text-primary-400"
+                          }`}
+                          title={
+                            savedJobs.has(job._id)
+                              ? "Remove from saved"
+                              : "Save job"
+                          }
                         >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-                          />
-                        </svg>
-                      </button>
+                          <svg
+                            className="w-5 h-5"
+                            fill={
+                              savedJobs.has(job._id) ? "currentColor" : "none"
+                            }
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                            />
+                          </svg>
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -404,12 +538,20 @@ function JobListingsPage({ onNavigate }) {
                     <span>{job.viewCount} views</span>
                   </div>
                   <div className="flex gap-3">
-                    <button 
+                    <button
                       onClick={() => onNavigate(`job-details/${job._id}`)}
-                      className="btn-primary text-sm px-4 py-2 w-full"
+                      className="btn-secondary text-sm px-4 py-2"
                     >
                       View Details
                     </button>
+                    {user?.userType === "jobseeker" && (
+                      <button
+                        onClick={() => handleApplyClick(job)}
+                        className="btn-primary text-sm px-4 py-2"
+                      >
+                        Apply Now
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -483,7 +625,15 @@ function JobListingsPage({ onNavigate }) {
         )}
       </div>
 
-      <Footer user={user} />
+      <Footer user={user} onNavigate={onNavigate} />
+
+      {/* Job Application Modal */}
+      <JobApplicationModal
+        job={applicationModal.job}
+        isOpen={applicationModal.isOpen}
+        onClose={() => setApplicationModal({ isOpen: false, job: null })}
+        onSuccess={handleApplicationSuccess}
+      />
     </div>
   );
 }

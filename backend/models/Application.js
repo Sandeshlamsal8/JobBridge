@@ -37,9 +37,10 @@ const applicationSchema = new mongoose.Schema(
       maxlength: [2000, "Cover letter cannot exceed 2000 characters"],
     },
     resume: {
+      data: Buffer,
+      contentType: String,
       filename: String,
       originalName: String,
-      path: String,
       size: Number,
       uploadedAt: {
         type: Date,
@@ -48,9 +49,10 @@ const applicationSchema = new mongoose.Schema(
     },
     additionalDocuments: [
       {
+        data: Buffer,
+        contentType: String,
         filename: String,
         originalName: String,
-        path: String,
         size: Number,
         uploadedAt: {
           type: Date,

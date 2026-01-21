@@ -7,7 +7,6 @@ dotenv.config();
 
 const app = express();
 
-
 app.use(
   cors({
     origin:
@@ -28,6 +27,10 @@ app.use("/api/auth", require("./routes/auth"));
 app.use("/api/users", require("./routes/users"));
 app.use("/api/jobs", require("./routes/jobs"));
 app.use("/api/applications", require("./routes/applications"));
+app.use("/api/notifications", require("./routes/notifications"));
+app.use("/api/saved-jobs", require("./routes/savedJobs"));
+app.use("/api/profile-views", require("./routes/profileViews"));
+app.use("/api/location", require("./routes/location"));
 
 // Health check route
 app.get("/api/health", (req, res) => {

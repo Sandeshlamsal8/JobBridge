@@ -1,28 +1,28 @@
-const nodemailer = require('nodemailer');
+const nodemailer = require("nodemailer");
 
 // Create transporter
 const createTransporter = () => {
   // For development, use ethereal email (fake SMTP)
   // For production, use real SMTP service (Gmail, SendGrid, etc.)
-  
-  if (process.env.NODE_ENV === 'production') {
+
+  if (process.env.NODE_ENV === "production") {
     return nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: process.env.SMTP_PORT,
       secure: true,
       auth: {
         user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS
-      }
+        pass: process.env.SMTP_PASS,
+      },
     });
   } else {
     // Development mode - use Gmail or configure your own
     return nodemailer.createTransport({
-      service: 'gmail',
+      service: "gmail",
       auth: {
         user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS // Use App Password for Gmail
-      }
+        pass: process.env.EMAIL_PASS, // Use App Password for Gmail
+      },
     });
   }
 };
@@ -40,7 +40,7 @@ const sendVerificationEmail = async (email, pin, firstName) => {
     const mailOptions = {
       from: `"JobBridge" <${process.env.EMAIL_USER}>`,
       to: email,
-      subject: 'Verify Your Email - JobBridge',
+      subject: "Verify Your Email - JobBridge",
       html: `
         <!DOCTYPE html>
         <html>
@@ -85,35 +85,37 @@ const sendVerificationEmail = async (email, pin, firstName) => {
           </div>
         </body>
         </html>
-      `
+      `,
     };
 
     await transporter.sendMail(mailOptions);
     return { success: true };
   } catch (error) {
-    console.error('Email sending error:', error);
+    console.error("Email sending error:", error);
     return { success: false, error: error.message };
   }
 };
 
 // Generate secure reset token
 const generateResetToken = () => {
-  const crypto = require('crypto');
-  return crypto.randomBytes(32).toString('hex');
+  const crypto = require("crypto");
+  return crypto.randomBytes(32).toString("hex");
 };
 
 // Send password reset email
 const sendPasswordResetEmail = async (email, resetToken, firstName) => {
   try {
     const transporter = createTransporter();
-    
+
     // Create reset URL - adjust this based on your frontend URL
-    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${resetToken}`;
+    const resetUrl = `${
+      process.env.FRONTEND_URL || "http://localhost:5173"
+    }/reset-password?token=${resetToken}`;
 
     const mailOptions = {
       from: `"JobBridge" <${process.env.EMAIL_USER}>`,
       to: email,
-      subject: 'Password Reset Request - JobBridge',
+      subject: "Password Reset Request - JobBridge",
       html: `
         <!DOCTYPE html>
         <html>
@@ -166,13 +168,13 @@ const sendPasswordResetEmail = async (email, resetToken, firstName) => {
           </div>
         </body>
         </html>
-      `
+      `,
     };
 
     await transporter.sendMail(mailOptions);
     return { success: true };
   } catch (error) {
-    console.error('Password reset email error:', error);
+    console.error("Password reset email error:", error);
     return { success: false, error: error.message };
   }
 };
@@ -185,7 +187,7 @@ const sendPasswordResetConfirmation = async (email, firstName) => {
     const mailOptions = {
       from: `"JobBridge" <${process.env.EMAIL_USER}>`,
       to: email,
-      subject: 'Password Changed Successfully - JobBridge',
+      subject: "Password Changed Successfully - JobBridge",
       html: `
         <!DOCTYPE html>
         <html>
@@ -215,7 +217,7 @@ const sendPasswordResetConfirmation = async (email, firstName) => {
               <p>Your JobBridge account password was recently changed. You can now log in with your new password.</p>
 
               <div class="danger">
-                <strong>🛡️ Security Alert:</strong> If you didn't make this change, please contact our support team immediately at support@jobbridge.com
+                <strong>🛡️ Security Alert:</strong> If you didn't make this change, please contact our support team immediately at jobbridge123@gmail.com
               </div>
 
               <p>Best regards,<br>The JobBridge Team</p>
@@ -227,13 +229,89 @@ const sendPasswordResetConfirmation = async (email, firstName) => {
           </div>
         </body>
         </html>
-      `
+      `,
     };
 
     await transporter.sendMail(mailOptions);
     return { success: true };
   } catch (error) {
-    console.error('Password reset confirmation email error:', error);
+    console.error("Password reset confirmation email error:", error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Send notification email
+const sendNotificationEmail = async (
+  email,
+  firstName,
+  title,
+  message,
+  actionUrl = null
+) => {
+  try {
+    const transporter = createTransporter();
+
+    const mailOptions = {
+      from: `"JobBridge" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: `${title} - JobBridge`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+            .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+            .button { display: inline-block; background: #667eea; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }
+            .button:hover { background: #5568d3; }
+            .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+            .notification-box { background: white; border-left: 4px solid #667eea; padding: 15px; margin: 15px 0; border-radius: 5px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>🔔 ${title}</h1>
+            </div>
+            <div class="content">
+              <p>Hi ${firstName},</p>
+              
+              <div class="notification-box">
+                <p style="margin: 0; font-size: 16px;">${message}</p>
+              </div>
+
+              ${
+                actionUrl
+                  ? `
+                <p style="text-align: center;">
+                  <a href="${
+                    process.env.FRONTEND_URL || "http://localhost:5173"
+                  }${actionUrl}" class="button">View Details</a>
+                </p>
+              `
+                  : ""
+              }
+
+              <p>You can manage your notification preferences in your account settings.</p>
+              
+              <p>Best regards,<br>The JobBridge Team</p>
+            </div>
+            <div class="footer">
+              <p>This is an automated email. Please do not reply.</p>
+              <p>&copy; ${new Date().getFullYear()} JobBridge. All rights reserved.</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `,
+    };
+
+    await transporter.sendMail(mailOptions);
+    return { success: true };
+  } catch (error) {
+    console.error("Notification email error:", error);
     return { success: false, error: error.message };
   }
 };
@@ -243,5 +321,14 @@ module.exports = {
   sendVerificationEmail,
   generateResetToken,
   sendPasswordResetEmail,
-  sendPasswordResetConfirmation
+  sendPasswordResetConfirmation,
+};
+
+module.exports = {
+  generatePIN,
+  sendVerificationEmail,
+  generateResetToken,
+  sendPasswordResetEmail,
+  sendPasswordResetConfirmation,
+  sendNotificationEmail,
 };

@@ -1,10 +1,13 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
+import { showToast } from "../components/ToastContainer";
+import { isCompanyProfileComplete } from "../utils/companyProfile";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
+import CompanySetupModal from "../components/CompanySetupModal";
 
 function EmployerDashboard({ onNavigate }) {
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
   const [stats, setStats] = useState({
     activeJobs: 0,
     totalApplications: 0,
@@ -14,10 +17,48 @@ function EmployerDashboard({ onNavigate }) {
   const [recentApplications, setRecentApplications] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showCompanySetup, setShowCompanySetup] = useState(false);
 
   useEffect(() => {
+    checkCompanyProfileCompletion();
     fetchDashboardData();
   }, []);
+
+  const checkCompanyProfileCompletion = () => {
+    const isComplete = isCompanyProfileComplete(user);
+
+    if (!isComplete) {
+      // Show welcome message for new employers
+      if (!user?.employerProfile?.companyName) {
+        setTimeout(() => {
+          showToast(
+            "Welcome to JobBridge! Let's set up your company profile to get started.",
+            "info",
+            6000
+          );
+        }, 1000);
+      }
+      setShowCompanySetup(true);
+    }
+  };
+
+  const handleCompanySetupComplete = (companyData) => {
+    // Update user context with new company data
+    updateUser({
+      ...user,
+      employerProfile: {
+        ...user.employerProfile,
+        ...companyData,
+      },
+    });
+
+    showToast(
+      "Welcome to JobBridge! Your company profile is now complete.",
+      "success",
+      5000
+    );
+    setShowCompanySetup(false);
+  };
 
   const fetchDashboardData = async () => {
     setIsLoading(true);
@@ -103,7 +144,9 @@ function EmployerDashboard({ onNavigate }) {
                     .yearsOfExperience || "N/A"
                 } years`
               : "N/A",
-          avatar: app.applicant?.profile?.avatar || "/placeholder-user.jpg",
+          avatar: app.applicant?.profile?.avatar
+            ? `/api/users/avatar/${app.applicant._id}`
+            : "/placeholder-user.jpg",
         }));
         setRecentApplications(applications);
       }
@@ -190,13 +233,57 @@ function EmployerDashboard({ onNavigate }) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-24">
         {/* Welcome Header */}
         <div className="mb-8 animate-fade-in">
-          <h1 className="text-3xl lg:text-4xl font-bold text-slate-100 mb-2">
-            Welcome back,{" "}
-            <span className="gradient-text">{user?.firstName}</span>! 🏢
-          </h1>
-          <p className="text-slate-300 text-lg">
-            Manage your job postings and track applications
-          </p>
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+            <div>
+              <h1 className="text-3xl lg:text-4xl font-bold text-slate-100 mb-2">
+                Welcome back,{" "}
+                <span className="gradient-text">{user?.firstName}</span>! 🏢
+              </h1>
+              <p className="text-slate-300 text-lg">
+                Manage your job postings and track applications
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => onNavigate("post-job")}
+                className="btn-primary px-6 py-3 flex items-center gap-2"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 4v16m8-8H4"
+                  />
+                </svg>
+                Post New Job
+              </button>
+              <button
+                onClick={() => onNavigate("my-jobs")}
+                className="btn-secondary px-6 py-3 flex items-center gap-2"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m8 0V6a2 2 0 012 2v6a2 2 0 01-2 2H8a2 2 0 01-2-2V8a2 2 0 012-2V6"
+                  />
+                </svg>
+                Manage Jobs
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Error Message */}
@@ -258,8 +345,8 @@ function EmployerDashboard({ onNavigate }) {
             {/* Main Content */}
             <div className="space-y-6">
               {/* Stats Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div className="glass-card p-6 rounded-2xl animate-scale-in">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="glass-card p-6 rounded-2xl animate-scale-in hover:shadow-glow transition-all duration-300">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-slate-400 text-sm font-medium">
@@ -267,6 +354,9 @@ function EmployerDashboard({ onNavigate }) {
                       </p>
                       <p className="text-3xl font-bold text-slate-100 mt-1">
                         {stats.activeJobs}
+                      </p>
+                      <p className="text-xs text-green-400 mt-1">
+                        Currently hiring
                       </p>
                     </div>
                     <div className="p-3 bg-primary-500/20 rounded-xl">
@@ -288,7 +378,7 @@ function EmployerDashboard({ onNavigate }) {
                 </div>
 
                 <div
-                  className="glass-card p-6 rounded-2xl animate-scale-in"
+                  className="glass-card p-6 rounded-2xl animate-scale-in hover:shadow-glow transition-all duration-300"
                   style={{ animationDelay: "0.1s" }}
                 >
                   <div className="flex items-center justify-between">
@@ -299,6 +389,7 @@ function EmployerDashboard({ onNavigate }) {
                       <p className="text-3xl font-bold text-slate-100 mt-1">
                         {stats.totalApplications}
                       </p>
+                      <p className="text-xs text-blue-400 mt-1">All time</p>
                     </div>
                     <div className="p-3 bg-blue-500/20 rounded-xl">
                       <svg
@@ -319,7 +410,7 @@ function EmployerDashboard({ onNavigate }) {
                 </div>
 
                 <div
-                  className="glass-card p-6 rounded-2xl animate-scale-in"
+                  className="glass-card p-6 rounded-2xl animate-scale-in hover:shadow-glow transition-all duration-300"
                   style={{ animationDelay: "0.2s" }}
                 >
                   <div className="flex items-center justify-between">
@@ -330,11 +421,11 @@ function EmployerDashboard({ onNavigate }) {
                       <p className="text-3xl font-bold text-slate-100 mt-1">
                         {stats.scheduledInterviews}
                       </p>
-                      {stats.scheduledInterviews > 0 && (
-                        <p className="text-blue-400 text-sm font-medium">
-                          Scheduled
-                        </p>
-                      )}
+                      <p className="text-xs text-purple-400 mt-1">
+                        {stats.scheduledInterviews > 0
+                          ? "Scheduled"
+                          : "None scheduled"}
+                      </p>
                     </div>
                     <div className="p-3 bg-purple-500/20 rounded-xl">
                       <svg
@@ -348,6 +439,47 @@ function EmployerDashboard({ onNavigate }) {
                           strokeLinejoin="round"
                           strokeWidth={2}
                           d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  className="glass-card p-6 rounded-2xl animate-scale-in hover:shadow-glow transition-all duration-300"
+                  style={{ animationDelay: "0.3s" }}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-slate-400 text-sm font-medium">
+                        Success Rate
+                      </p>
+                      <p className="text-3xl font-bold text-slate-100 mt-1">
+                        {stats.totalApplications > 0
+                          ? Math.round(
+                              (stats.scheduledInterviews /
+                                stats.totalApplications) *
+                                100
+                            )
+                          : 0}
+                        %
+                      </p>
+                      <p className="text-xs text-green-400 mt-1">
+                        Interview rate
+                      </p>
+                    </div>
+                    <div className="p-3 bg-green-500/20 rounded-xl">
+                      <svg
+                        className="w-6 h-6 text-green-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
                         />
                       </svg>
                     </div>
@@ -405,16 +537,42 @@ function EmployerDashboard({ onNavigate }) {
                           </div>
                           <div className="flex gap-3">
                             <button
-                              onClick={() => onNavigate("my-jobs")}
-                              className="btn-secondary text-sm px-4 py-2 flex-1"
+                              onClick={() => onNavigate(`edit-job/${job._id}`)}
+                              className="btn-secondary text-sm px-4 py-2 flex-1 flex items-center justify-center gap-2"
                             >
-                              Manage Jobs
+                              <svg
+                                className="w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                />
+                              </svg>
+                              Edit
                             </button>
                             <button
                               onClick={() => onNavigate("applications")}
-                              className="btn-primary text-sm px-4 py-2 flex-1"
+                              className="btn-primary text-sm px-4 py-2 flex-1 flex items-center justify-center gap-2"
                             >
-                              View Applications
+                              <svg
+                                className="w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                                />
+                              </svg>
+                              Applications
                             </button>
                           </div>
                         </div>
@@ -474,7 +632,11 @@ function EmployerDashboard({ onNavigate }) {
                           <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-3">
                               <img
-                                src={application.avatar}
+                                src={
+                                  application.avatar.startsWith("/api/")
+                                    ? `http://localhost:5000${application.avatar}`
+                                    : application.avatar
+                                }
                                 alt={application.candidateName}
                                 className="w-10 h-10 rounded-full bg-slate-700 object-cover"
                                 onError={(e) => {
@@ -538,7 +700,15 @@ function EmployerDashboard({ onNavigate }) {
         )}
       </div>
 
-      <Footer user={user} />
+      <Footer user={user} onNavigate={onNavigate} />
+
+      {/* Company Setup Modal */}
+      <CompanySetupModal
+        isOpen={showCompanySetup}
+        onClose={() => setShowCompanySetup(false)}
+        onComplete={handleCompanySetupComplete}
+        user={user}
+      />
     </div>
   );
 }

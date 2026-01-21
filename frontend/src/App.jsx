@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import ToastContainer from "./components/ToastContainer";
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
 import SignUpPage from "./pages/SignUpPage";
@@ -9,13 +10,15 @@ import ResetPasswordPage from "./pages/ResetPasswordPage";
 import JobSeekerDashboard from "./pages/JobSeekerDashboard";
 import EmployerDashboard from "./pages/EmployerDashboard";
 import PostJobPage from "./pages/PostJobPage";
+import EditJobPage from "./pages/EditJobPage";
 import JobListingsPage from "./pages/JobListingsPage";
 import MyJobsPage from "./pages/MyJobsPage";
 import MyApplicationsPage from "./pages/MyApplicationsPage";
 import ApplicationsPage from "./pages/ApplicationsPage";
-import ProfileSettingsPage from "./pages/ProfileSettingsPage";
+import SavedJobsPage from "./pages/SavedJobsPage";
+import ProfileSettings from "./pages/ProfileSettings";
 import AccountSettings from "./pages/AccountSettings";
-import CompanyVerificationPage from "./pages/CompanyVerificationPage";
+import ContactPage from "./pages/ContactPage";
 import CandidateProfilePage from "./pages/CandidateProfilePage";
 import ApplicationReviewPage from "./pages/ApplicationReviewPage";
 import JobDetailsPage from "./pages/JobDetailsPage";
@@ -28,10 +31,10 @@ function AppContent() {
   // Check for reset password token in URL on mount
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get('token');
-    
+    const token = urlParams.get("token");
+
     if (token) {
-      setCurrentPage('reset-password');
+      setCurrentPage("reset-password");
       setPageData({ token });
       // Clear the URL parameter
       window.history.replaceState({}, document.title, window.location.pathname);
@@ -95,8 +98,8 @@ function AppContent() {
         return <ForgotPasswordPage onNavigate={handleNavigate} />;
       case "reset-password":
         return (
-          <ResetPasswordPage 
-            onNavigate={handleNavigate} 
+          <ResetPasswordPage
+            onNavigate={handleNavigate}
             token={pageData?.token}
           />
         );
@@ -127,12 +130,6 @@ function AppContent() {
         ) : (
           <HomePage onNavigate={handleNavigate} />
         );
-      case "company-verification":
-        return isAuthenticated && user?.userType === "employer" ? (
-          <CompanyVerificationPage onNavigate={handleNavigate} />
-        ) : (
-          <HomePage onNavigate={handleNavigate} />
-        );
 
       // Job Seeker Routes
       case "jobseeker-dashboard":
@@ -147,11 +144,19 @@ function AppContent() {
         ) : (
           <HomePage onNavigate={handleNavigate} />
         );
+      case "saved-jobs":
+        return isAuthenticated && user?.userType === "jobseeker" ? (
+          <SavedJobsPage onNavigate={handleNavigate} />
+        ) : (
+          <HomePage onNavigate={handleNavigate} />
+        );
 
       // Common Routes
+      case "contact":
+        return <ContactPage onNavigate={handleNavigate} />;
       case "profile-settings":
         return isAuthenticated ? (
-          <ProfileSettingsPage onNavigate={handleNavigate} />
+          <ProfileSettings onNavigate={handleNavigate} />
         ) : (
           <HomePage onNavigate={handleNavigate} />
         );
@@ -192,13 +197,19 @@ function AppContent() {
         // Dynamic Routes - Job Details
         if (currentPage.startsWith("job-details/")) {
           const jobId = currentPage.split("/")[1];
-          return (
-            <JobDetailsPage
-              onNavigate={handleNavigate}
-              jobId={jobId}
-            />
+          return <JobDetailsPage onNavigate={handleNavigate} jobId={jobId} />;
+        }
+
+        // Dynamic Routes - Edit Job
+        if (currentPage.startsWith("edit-job/")) {
+          const jobId = currentPage.split("/")[1];
+          return isAuthenticated && user?.userType === "employer" ? (
+            <EditJobPage onNavigate={handleNavigate} jobId={jobId} />
+          ) : (
+            <HomePage onNavigate={handleNavigate} />
           );
         }
+
         // If user is authenticated, redirect to their dashboard
         if (isAuthenticated && user) {
           if (user.userType === "jobseeker") {
@@ -220,6 +231,7 @@ function App() {
   return (
     <AuthProvider>
       <AppContent />
+      <ToastContainer />
     </AuthProvider>
   );
 }

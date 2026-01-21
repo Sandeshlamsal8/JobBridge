@@ -1,7 +1,10 @@
 const express = require("express");
 const { body, validationResult } = require("express-validator");
+const path = require("path");
 const Application = require("../models/Application");
 const Job = require("../models/Job");
+const ProfileView = require("../models/ProfileView");
+const NotificationService = require("../services/notificationService");
 const {
   auth,
   requireUserType,
@@ -19,7 +22,7 @@ router.post(
   [
     auth,
     requireUserType("jobseeker"),
-    upload.single('cv'), // Handle CV file upload
+    upload.single("cv"), // Handle CV file upload
     body("jobId").isMongoId().withMessage("Invalid job ID"),
     body("coverLetter")
       .optional()
@@ -53,12 +56,7 @@ router.post(
         });
       }
 
-      const {
-        jobId,
-        coverLetter,
-        expectedSalary,
-        questionsAnswers,
-      } = req.body;
+      const { jobId, coverLetter, expectedSalary, questionsAnswers } = req.body;
 
       // Check if job exists and is active
       const job = await Job.findById(jobId).populate("company");
@@ -90,24 +88,32 @@ router.post(
         });
       }
 
-      // Create application with CV file info
+      // Generate unique filename for CV
+      const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+      const extension = path.extname(req.file.originalname);
+      const filename = `cv-${uniqueSuffix}${extension}`;
+
+      // Create application with CV file data
       const application = new Application({
         job: jobId,
         applicant: req.user.userId,
         employer: job.company._id,
         coverLetter,
         resume: {
-          filename: req.file.filename,
+          data: req.file.buffer,
+          contentType: req.file.mimetype,
+          filename: filename,
           originalName: req.file.originalname,
-          path: `uploads/${req.file.filename}`, // Use relative path with forward slashes
           size: req.file.size,
           uploadedAt: new Date(),
         },
-        expectedSalary: expectedSalary ? {
-          amount: expectedSalary.amount,
-          period: expectedSalary.period || 'yearly',
-          currency: 'USD'
-        } : undefined,
+        expectedSalary: expectedSalary
+          ? {
+              amount: expectedSalary.amount,
+              period: expectedSalary.period || "yearly",
+              currency: "USD",
+            }
+          : undefined,
         questionsAnswers,
       });
 
@@ -120,7 +126,19 @@ router.post(
       await application.populate([
         { path: "job", select: "title companyName location jobType" },
         { path: "applicant", select: "firstName lastName email profile" },
+        { path: "employer", select: "firstName lastName email" },
       ]);
+
+      // Send notification to employer about new application
+      try {
+        await NotificationService.notifyNewApplication(application);
+      } catch (notificationError) {
+        console.error(
+          "Failed to send new application notification:",
+          notificationError
+        );
+        // Don't fail the application creation if notification fails
+      }
 
       res.status(201).json({
         success: true,
@@ -129,15 +147,16 @@ router.post(
       });
     } catch (error) {
       console.error("Apply for job error:", error);
-      
+
       // Handle duplicate key error
       if (error.code === 11000) {
         return res.status(400).json({
           success: false,
-          message: "You have already applied for this job. Please check your applications.",
+          message:
+            "You have already applied for this job. Please check your applications.",
         });
       }
-      
+
       res.status(500).json({
         success: false,
         message: "Server error",
@@ -333,6 +352,24 @@ router.get(
         application.notes = application.notes.filter((note) => !note.isPrivate);
       }
 
+      // Record profile view if employer is viewing job seeker's application
+      if (isEmployer && application.applicant) {
+        try {
+          await ProfileView.recordView(
+            application.applicant._id,
+            req.user.userId,
+            "employer",
+            {
+              source: "job_application",
+              jobId: application.job._id,
+            }
+          );
+        } catch (viewError) {
+          console.error("Failed to record profile view:", viewError);
+          // Don't fail the request if view recording fails
+        }
+      }
+
       res.json({
         success: true,
         data: { application },
@@ -435,6 +472,21 @@ router.put(
         { path: "job", select: "title companyName" },
         { path: "applicant", select: "firstName lastName email" },
       ]);
+
+      // Send notification to applicant about status update
+      try {
+        await NotificationService.notifyApplicationStatusUpdate(
+          application,
+          status,
+          req.user.userId
+        );
+      } catch (notificationError) {
+        console.error(
+          "Failed to send status update notification:",
+          notificationError
+        );
+        // Don't fail the status update if notification fails
+      }
 
       res.json({
         success: true,
@@ -568,6 +620,59 @@ router.put(
         message: "Server error",
         error:
           process.env.NODE_ENV === "development" ? error.message : undefined,
+      });
+    }
+  }
+);
+
+// @route   GET /api/applications/cv/:applicationId
+// @desc    Serve CV file from database
+// @access  Private (Employer only)
+router.get(
+  "/cv/:applicationId",
+  auth,
+  requireUserType("employer"),
+  async (req, res) => {
+    try {
+      const application = await Application.findById(req.params.applicationId);
+
+      if (!application) {
+        return res.status(404).json({
+          success: false,
+          message: "Application not found",
+        });
+      }
+
+      // Check if the employer owns this application
+      if (application.employer.toString() !== req.user.userId) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied",
+        });
+      }
+
+      if (!application.resume || !application.resume.data) {
+        return res.status(404).json({
+          success: false,
+          message: "CV not found",
+        });
+      }
+
+      // Set appropriate headers
+      res.set({
+        "Content-Type": application.resume.contentType,
+        "Content-Length": application.resume.size,
+        "Content-Disposition": `inline; filename="${application.resume.originalName}"`,
+        "Cache-Control": "private, max-age=3600", // Cache for 1 hour
+      });
+
+      // Send the CV data
+      res.send(application.resume.data);
+    } catch (error) {
+      console.error("Error serving CV:", error);
+      res.status(500).json({
+        success: false,
+        message: "Server error while serving CV",
       });
     }
   }
