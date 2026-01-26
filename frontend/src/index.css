@@ -4,12 +4,50 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    /* Global scaling factor - 0.9 = 90% of original size (10% reduction) */
+    --scale-factor: 0.9;
+    
+    /* Scaled spacing values */
+    --spacing-1: calc(0.25rem * var(--scale-factor));
+    --spacing-2: calc(0.5rem * var(--scale-factor));
+    --spacing-3: calc(0.75rem * var(--scale-factor));
+    --spacing-4: calc(1rem * var(--scale-factor));
+    --spacing-5: calc(1.25rem * var(--scale-factor));
+    --spacing-6: calc(1.5rem * var(--scale-factor));
+    --spacing-8: calc(2rem * var(--scale-factor));
+    --spacing-10: calc(2.5rem * var(--scale-factor));
+    --spacing-12: calc(3rem * var(--scale-factor));
+    --spacing-16: calc(4rem * var(--scale-factor));
+    --spacing-20: calc(5rem * var(--scale-factor));
+    --spacing-24: calc(6rem * var(--scale-factor));
+    
+    /* Scaled font sizes */
+    --text-xs: calc(0.75rem * var(--scale-factor));
+    --text-sm: calc(0.875rem * var(--scale-factor));
+    --text-base: calc(1rem * var(--scale-factor));
+    --text-lg: calc(1.125rem * var(--scale-factor));
+    --text-xl: calc(1.25rem * var(--scale-factor));
+    --text-2xl: calc(1.5rem * var(--scale-factor));
+    --text-3xl: calc(1.875rem * var(--scale-factor));
+    --text-4xl: calc(2.25rem * var(--scale-factor));
+    --text-5xl: calc(3rem * var(--scale-factor));
+    --text-6xl: calc(3.75rem * var(--scale-factor));
+  }
+
   html {
     scroll-behavior: smooth;
+    font-size: calc(16px * var(--scale-factor));
   }
 
   body {
     @apply bg-dark-950 text-slate-100 font-sans antialiased;
+  }
+
+  /* Apply scaled spacing to common elements */
+  .scaled-spacing {
+    --tw-space-x-reverse: 0;
+    --tw-space-y-reverse: 0;
   }
 
   * {
@@ -20,6 +58,8 @@
 @layer components {
   .glass-card {
     @apply bg-dark-900/40 backdrop-blur-xl border border-dark-700/30 shadow-2xl;
+    padding: var(--spacing-6);
+    border-radius: calc(1rem * var(--scale-factor));
   }
 
   .glass-card-hover {
@@ -27,26 +67,70 @@
   }
 
   .btn-primary {
-    @apply bg-gradient-to-r from-primary-500 to-primary-600 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-semibold shadow-lg hover:shadow-glow hover:from-primary-400 hover:to-primary-500 transition-all duration-300 active:scale-95 sm:hover:scale-105;
+    @apply bg-gradient-to-r from-primary-500 to-primary-600 text-white font-semibold shadow-lg hover:shadow-glow hover:from-primary-400 hover:to-primary-500 transition-all duration-300 active:scale-95 sm:hover:scale-105;
+    padding: var(--spacing-3) var(--spacing-6);
+    border-radius: calc(0.75rem * var(--scale-factor));
+    font-size: var(--text-base);
   }
 
   .btn-secondary {
-    @apply border-2 border-primary-400/60 text-primary-400 px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-semibold hover:bg-primary-400/10 hover:border-primary-400 transition-all duration-300 backdrop-blur-sm active:scale-95;
+    @apply border-2 border-primary-400/60 text-primary-400 font-semibold hover:bg-primary-400/10 hover:border-primary-400 transition-all duration-300 backdrop-blur-sm active:scale-95;
+    padding: var(--spacing-3) var(--spacing-6);
+    border-radius: calc(0.75rem * var(--scale-factor));
+    font-size: var(--text-base);
   }
 
   .input-field {
-    @apply w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-dark-600/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500/50 bg-dark-800/50 text-slate-100 placeholder-slate-400 transition-all duration-300 backdrop-blur-sm text-base;
+    @apply w-full border border-dark-600/50 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500/50 bg-dark-800/50 text-slate-100 placeholder-slate-400 transition-all duration-300 backdrop-blur-sm;
+    padding: var(--spacing-3) var(--spacing-4);
+    border-radius: calc(0.75rem * var(--scale-factor));
+    font-size: var(--text-base);
   }
 
   .gradient-text {
     @apply bg-gradient-to-r from-primary-400 to-primary-300 bg-clip-text text-transparent;
   }
 
+  /* Scaled text utilities */
+  .text-xs-scaled { font-size: var(--text-xs); }
+  .text-sm-scaled { font-size: var(--text-sm); }
+  .text-base-scaled { font-size: var(--text-base); }
+  .text-lg-scaled { font-size: var(--text-lg); }
+  .text-xl-scaled { font-size: var(--text-xl); }
+  .text-2xl-scaled { font-size: var(--text-2xl); }
+  .text-3xl-scaled { font-size: var(--text-3xl); }
+  .text-4xl-scaled { font-size: var(--text-4xl); }
+  .text-5xl-scaled { font-size: var(--text-5xl); }
+  .text-6xl-scaled { font-size: var(--text-6xl); }
+
+  /* Scaled spacing utilities */
+  .p-scaled-1 { padding: var(--spacing-1); }
+  .p-scaled-2 { padding: var(--spacing-2); }
+  .p-scaled-3 { padding: var(--spacing-3); }
+  .p-scaled-4 { padding: var(--spacing-4); }
+  .p-scaled-6 { padding: var(--spacing-6); }
+  .p-scaled-8 { padding: var(--spacing-8); }
+  
+  .m-scaled-1 { margin: var(--spacing-1); }
+  .m-scaled-2 { margin: var(--spacing-2); }
+  .m-scaled-3 { margin: var(--spacing-3); }
+  .m-scaled-4 { margin: var(--spacing-4); }
+  .m-scaled-6 { margin: var(--spacing-6); }
+  .m-scaled-8 { margin: var(--spacing-8); }
+
+  .gap-scaled-1 { gap: var(--spacing-1); }
+  .gap-scaled-2 { gap: var(--spacing-2); }
+  .gap-scaled-3 { gap: var(--spacing-3); }
+  .gap-scaled-4 { gap: var(--spacing-4); }
+  .gap-scaled-6 { gap: var(--spacing-6); }
+  .gap-scaled-8 { gap: var(--spacing-8); }
+
   /* Mobile-specific utilities */
   @media (max-width: 640px) {
     .btn-primary,
     .btn-secondary {
-      @apply text-sm;
+      font-size: var(--text-sm);
+      padding: var(--spacing-2) var(--spacing-4);
     }
   }
 
@@ -55,7 +139,7 @@
     input,
     select,
     textarea {
-      font-size: 16px !important;
+      font-size: calc(16px * var(--scale-factor)) !important;
     }
   }
 
@@ -66,7 +150,7 @@
     input,
     select,
     textarea {
-      @apply min-h-[44px];
+      min-height: calc(44px * var(--scale-factor));
     }
   }
 
