@@ -221,15 +221,11 @@ router.post('/verify-email', [
     // Generate JWT token
     const token = generateToken(user._id);
 
-    // Remove password from response
-    const userResponse = user.toObject();
-    delete userResponse.password;
-
     res.status(201).json({
       success: true,
       message: 'Email verified successfully! Your account has been created.',
       data: {
-        user: userResponse,
+        user: user.toProfileJSON(), // Use toProfileJSON to get avatar URL
         token
       }
     });
@@ -387,17 +383,11 @@ router.post('/login', [
     // Generate JWT token
     const token = generateToken(user._id);
 
-    // Remove sensitive fields from response
-    const userResponse = user.toObject();
-    delete userResponse.password;
-    delete userResponse.loginAttempts;
-    delete userResponse.lockUntil;
-
     res.json({
       success: true,
       message: 'Login successful',
       data: {
-        user: userResponse,
+        user: user.toProfileJSON(), // Use toProfileJSON to get avatar URL
         token
       }
     });
@@ -428,7 +418,7 @@ router.get('/me', auth, async (req, res) => {
 
     res.json({
       success: true,
-      data: { user }
+      data: { user: user.toProfileJSON() }
     });
 
   } catch (error) {

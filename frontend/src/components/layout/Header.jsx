@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
+import { useAuth } from "../../contexts/AuthContext";
 import NotificationCenter from "../NotificationCenter";
 
-function Header({ onNavigate, user, onLogout }) {
+function Header({ onNavigate, onLogout }) {
+  const { user, avatarUpdateCounter } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
@@ -164,6 +166,7 @@ function Header({ onNavigate, user, onLogout }) {
                     <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center text-white font-semibold text-sm overflow-hidden">
                       {user.profile?.avatar ? (
                         <img
+                          key={`${user.profile.avatar}-${avatarUpdateCounter}`} // Force re-render on URL change
                           src={`http://localhost:5000${user.profile.avatar}`}
                           alt="Profile"
                           className="w-full h-full object-cover"
@@ -340,6 +343,7 @@ function Header({ onNavigate, user, onLogout }) {
                       <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center text-white font-semibold overflow-hidden">
                         {user.profile?.avatar ? (
                           <img
+                            key={`${user.profile.avatar}-${avatarUpdateCounter}`} // Force re-render on URL change
                             src={`http://localhost:5000${user.profile.avatar}`}
                             alt="Profile"
                             className="w-full h-full object-cover"

@@ -13,8 +13,10 @@ export const useProfileCompletion = () => {
     try {
       setLoading(true);
       const token = sessionStorage.getItem("jobbridge_token");
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/users/profile-completion`,
+        `${apiUrl}/users/profile-completion`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -26,11 +28,10 @@ export const useProfileCompletion = () => {
       if (data.success) {
         setCompletionData(data.data);
 
-        // Show modal for job seekers with incomplete profiles
+        // Show modal for job seekers based on backend shouldShowPrompt
         if (
           user.userType === "jobseeker" &&
-          data.data.shouldShowPrompt &&
-          data.data.overallPercentage < 50
+          data.data.shouldShowPrompt
         ) {
           // Delay showing modal to avoid overwhelming new users
           setTimeout(() => {
@@ -54,7 +55,7 @@ export const useProfileCompletion = () => {
   };
 
   useEffect(() => {
-    if (isAuthenticated && user) {
+    if (isAuthenticated && user && user._id) {
       fetchProfileCompletion();
     }
   }, [isAuthenticated, user]);

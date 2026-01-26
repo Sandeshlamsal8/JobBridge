@@ -83,6 +83,10 @@ function ProfileCompletionModal({ isOpen, onClose, onNavigate }) {
 
   if (!isOpen || !completionData) return null;
 
+  // Check if this is a new user (hasn't seen the prompt before)
+  const isNewUser = !user?.profile?.profileCompletionPromptShown;
+  const isIncompleteProfile = completionData.overallPercentage < 50;
+
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="glass-card max-w-2xl w-full max-h-[90vh] overflow-y-auto rounded-3xl">
@@ -91,11 +95,13 @@ function ProfileCompletionModal({ isOpen, onClose, onNavigate }) {
           <div className="text-center mb-6">
             <div className="text-6xl mb-4">👋</div>
             <h2 className="text-2xl font-bold text-slate-100 mb-2">
-              Welcome to JobBridge!
+              {isNewUser ? "Welcome to JobBridge!" : "Let's Complete Your Profile"}
             </h2>
             <p className="text-slate-300">
-              Let's complete your profile to help you find the perfect job
-              opportunities
+              {isNewUser 
+                ? "Let's set up your profile to help you find the perfect job opportunities"
+                : "Complete your profile to improve your job search experience"
+              }
             </p>
           </div>
 
@@ -256,7 +262,7 @@ function ProfileCompletionModal({ isOpen, onClose, onNavigate }) {
                   onClick={handleCompleteProfile}
                   className="flex-1 btn-primary py-3 text-lg font-semibold"
                 >
-                  Complete My Profile
+                  {isNewUser ? "Set Up My Profile" : "Complete My Profile"}
                 </button>
                 <button
                   onClick={handleDismiss}

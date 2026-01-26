@@ -25,11 +25,13 @@ router.get("/avatar/:userId", async (req, res) => {
       });
     }
 
-    // Set appropriate headers
+    // Set appropriate headers (no caching for profile pictures to ensure updates are visible)
     res.set({
       "Content-Type": user.profile.avatar.contentType,
       "Content-Length": user.profile.avatar.size,
-      "Cache-Control": "public, max-age=86400", // Cache for 1 day
+      "Cache-Control": "no-cache, no-store, must-revalidate", // Prevent caching
+      "Pragma": "no-cache",
+      "Expires": "0",
     });
 
     // Send the image data
@@ -84,11 +86,14 @@ router.post(
 
       await user.save();
 
+      // Get the avatar URL with timestamp for cache-busting
+      const avatarUrl = user.avatarUrl;
+
       res.json({
         success: true,
         message: "Profile picture updated successfully",
         data: {
-          avatar: `/api/users/avatar/${user._id}`, // URL to serve the image
+          avatar: avatarUrl, // URL with timestamp for cache-busting
           filename: filename,
           size: req.file.size,
         },
@@ -296,7 +301,7 @@ router.get("/profile", auth, async (req, res) => {
     res.json({
       success: true,
       data: {
-        user,
+        user: user.toProfileJSON(),
       },
     });
   } catch (error) {
@@ -338,16 +343,10 @@ router.get("/:id", auth, async (req, res) => {
       });
     }
 
-    // Remove sensitive information
-    const userProfile = user.toObject();
-    delete userProfile.password;
-    delete userProfile.loginAttempts;
-    delete userProfile.lockUntil;
-
     res.json({
       success: true,
       data: {
-        user: userProfile,
+        user: user.toProfileJSON(),
       },
     });
   } catch (error) {

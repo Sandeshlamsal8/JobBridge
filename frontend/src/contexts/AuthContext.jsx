@@ -25,6 +25,7 @@ const initialState = {
   error: null,
   lastActivity: Date.now(),
   sessionExpiry: null,
+  avatarUpdateCounter: 0, // Force re-renders when avatar changes
 };
 
 // Action types
@@ -73,9 +74,21 @@ const authReducer = (state, action) => {
         error: null,
       };
     case AUTH_ACTIONS.UPDATE_USER:
+      const hasAvatarChanged = action.payload.profile?.avatar !== state.user?.profile?.avatar;
       return {
         ...state,
-        user: { ...state.user, ...action.payload },
+        user: {
+          ...state.user,
+          ...action.payload,
+          // Deep merge profile object if it exists in the payload
+          profile: action.payload.profile 
+            ? { ...state.user?.profile, ...action.payload.profile }
+            : state.user?.profile,
+        },
+        // Increment counter when avatar changes to force re-renders
+        avatarUpdateCounter: hasAvatarChanged 
+          ? state.avatarUpdateCounter + 1 
+          : state.avatarUpdateCounter,
       };
     case AUTH_ACTIONS.UPDATE_ACTIVITY:
       return {

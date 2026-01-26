@@ -322,10 +322,10 @@ router.get(
         )
         .populate(
           "applicant",
-          "firstName lastName email profile jobSeekerProfile"
+          "firstName lastName email profile jobSeekerProfile -profile.avatar.data"
         )
-        .populate("employer", "firstName lastName employerProfile.companyName")
-        .populate("notes.author", "firstName lastName");
+        .populate("employer", "firstName lastName employerProfile.companyName -profile.avatar.data")
+        .populate("notes.author", "firstName lastName -profile.avatar.data");
 
       if (!application) {
         return res.status(404).json({

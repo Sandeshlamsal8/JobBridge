@@ -139,7 +139,7 @@ notificationSchema.statics.createNotification = async function (data) {
 
   // Populate sender and recipient for real-time notifications
   await notification.populate([
-    { path: "sender", select: "firstName lastName profile.avatar" },
+    { path: "sender", select: "firstName lastName profile.avatar -profile.avatar.data" },
     { path: "recipient", select: "firstName lastName notificationSettings" },
   ]);
 
@@ -166,7 +166,7 @@ notificationSchema.statics.getUserNotifications = function (
   if (!includeArchived) query.status = { $ne: "archived" };
 
   return this.find(query)
-    .populate("sender", "firstName lastName profile.avatar")
+    .populate("sender", "firstName lastName profile.avatar -profile.avatar.data")
     .populate("data.jobId", "title companyName")
     .populate("data.applicationId", "status")
     .sort({ createdAt: -1 })

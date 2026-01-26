@@ -318,7 +318,7 @@ applicationSchema.methods.scheduleInterview = function (interviewData) {
 applicationSchema.statics.getByEmployer = function (employerId, filters = {}) {
   return this.find({ employer: employerId, ...filters })
     .populate("job", "title location jobType")
-    .populate("applicant", "firstName lastName email profile jobSeekerProfile")
+    .populate("applicant", "firstName lastName email profile jobSeekerProfile -profile.avatar.data")
     .sort({ createdAt: -1 });
 };
 
@@ -329,7 +329,7 @@ applicationSchema.statics.getByApplicant = function (
 ) {
   return this.find({ applicant: applicantId, ...filters })
     .populate("job", "title companyName location jobType salary")
-    .populate("employer", "firstName lastName employerProfile.companyName")
+    .populate("employer", "firstName lastName employerProfile.companyName -profile.avatar.data")
     .sort({ createdAt: -1 });
 };
 

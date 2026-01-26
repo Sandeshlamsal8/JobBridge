@@ -478,11 +478,12 @@ function ProfileSettings({ onNavigate }) {
         showToast("Profile picture updated successfully", "success");
         setSelectedImage(null);
         setImagePreview(null);
+        
         // Update avatar in basicInfo
         setBasicInfo((prev) => ({ ...prev, avatar: data.data.avatar }));
-        // Update user context with new avatar
+        
+        // Update user context with the new avatar URL
         updateUser({
-          ...user,
           profile: {
             ...user.profile,
             avatar: data.data.avatar,

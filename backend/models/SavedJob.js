@@ -85,7 +85,7 @@ savedJobSchema.statics.getUserSavedJobs = function (userId, options = {}) {
         "title companyName location jobType workMode salary status createdAt",
       populate: {
         path: "company",
-        select: "firstName lastName employerProfile.companyName profile.avatar",
+        select: "firstName lastName employerProfile.companyName profile.avatar -profile.avatar.data",
       },
     })
     .sort({ [sortBy]: sortOrder })

@@ -2,13 +2,12 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
-import ProfileCompletionModal from "../components/ProfileCompletionModal";
-import { useProfileCompletion } from "../hooks/useProfileCompletion";
+import JobSeekerSetupModal from "../components/JobSeekerSetupModal";
+import { showToast } from "../components/ToastContainer";
 
 function JobSeekerDashboard({ onNavigate }) {
-  const { user, logout } = useAuth();
-  const { completionData, shouldShowModal, dismissModal, refreshCompletion } =
-    useProfileCompletion();
+  const { user, logout, updateUser } = useAuth();
+  const [showProfileSetup, setShowProfileSetup] = useState(false);
 
   const [stats, setStats] = useState({
     appliedJobs: 0,
@@ -20,6 +19,71 @@ function JobSeekerDashboard({ onNavigate }) {
   const [recommendedJobs, setRecommendedJobs] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  useEffect(() => {
+    checkProfileCompletion();
+    fetchDashboardData();
+  }, []);
+
+  const checkProfileCompletion = () => {
+    // Check if basic profile info is missing
+    const hasBasicInfo = user?.profile?.phone && user?.profile?.location;
+    const hasProfessionalInfo = user?.jobSeekerProfile?.headline && user?.jobSeekerProfile?.experienceLevel;
+    const hasSkills = user?.jobSeekerProfile?.skills && user?.jobSeekerProfile?.skills.length > 0;
+    const hasJobPreferences = user?.jobSeekerProfile?.jobPreferences?.jobTypes && 
+                             user?.jobSeekerProfile?.jobPreferences?.jobTypes.length > 0;
+
+    const isProfileComplete = hasBasicInfo && hasProfessionalInfo && hasSkills && hasJobPreferences;
+
+    if (!isProfileComplete) {
+      // Show welcome message for new job seekers
+      if (!user?.jobSeekerProfile?.headline) {
+        setTimeout(() => {
+          showToast(
+            "Welcome to JobBridge! Let's set up your profile to find the perfect job opportunities.",
+            "info",
+            6000
+          );
+        }, 1000);
+      }
+      setShowProfileSetup(true);
+    }
+  };
+
+  const handleProfileSetupComplete = (profileData) => {
+    // Update user context with new profile data
+    updateUser({
+      ...user,
+      profile: {
+        ...user.profile,
+        phone: profileData.phone,
+        location: profileData.location,
+        bio: profileData.bio,
+        website: profileData.website,
+      },
+      jobSeekerProfile: {
+        ...user.jobSeekerProfile,
+        headline: profileData.headline,
+        experienceLevel: profileData.experienceLevel,
+        skills: profileData.skills,
+        jobPreferences: {
+          ...user.jobSeekerProfile?.jobPreferences,
+          jobTypes: profileData.jobTypes,
+          workModes: profileData.workModes,
+          categories: profileData.categories,
+          willingToRelocate: profileData.willingToRelocate,
+        },
+        expectedSalary: profileData.expectedSalary,
+      },
+    });
+
+    showToast(
+      "Welcome to JobBridge! Your profile is now set up and ready to go.",
+      "success",
+      5000
+    );
+    setShowProfileSetup(false);
+  };
 
   useEffect(() => {
     fetchDashboardData();
@@ -200,63 +264,6 @@ function JobSeekerDashboard({ onNavigate }) {
           </p>
         </div>
 
-        {/* Profile Completion Alert */}
-        {completionData && completionData.overallPercentage < 80 && (
-          <div className="glass-card p-6 rounded-3xl mb-8 border-l-4 border-yellow-400 bg-yellow-400/5 animate-slide-up">
-            <div className="flex items-start justify-between">
-              <div className="flex items-start gap-4">
-                <div className="text-3xl">📝</div>
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-slate-100 mb-2">
-                    Complete Your Profile ({completionData.overallPercentage}%)
-                  </h3>
-                  <p className="text-slate-300 mb-4">
-                    A complete profile helps employers find you and increases
-                    your chances of getting hired.
-                  </p>
-
-                  {/* Progress Bar */}
-                  <div className="w-full bg-slate-700 rounded-full h-2 mb-4">
-                    <div
-                      className="h-2 bg-gradient-to-r from-yellow-400 to-green-400 rounded-full transition-all duration-500"
-                      style={{ width: `${completionData.overallPercentage}%` }}
-                    ></div>
-                  </div>
-
-                  {/* Top Recommendations */}
-                  {completionData.recommendations &&
-                    completionData.recommendations.length > 0 && (
-                      <div className="mb-4">
-                        <p className="text-sm text-slate-400 mb-2">
-                          Next steps:
-                        </p>
-                        <ul className="text-sm text-slate-300 space-y-1">
-                          {completionData.recommendations
-                            .slice(0, 2)
-                            .map((rec, index) => (
-                              <li
-                                key={index}
-                                className="flex items-center gap-2"
-                              >
-                                <span className="w-1.5 h-1.5 bg-yellow-400 rounded-full"></span>
-                                {rec.title}
-                              </li>
-                            ))}
-                        </ul>
-                      </div>
-                    )}
-                </div>
-              </div>
-              <button
-                onClick={() => onNavigate("profile-settings")}
-                className="btn-primary px-4 py-2 text-sm whitespace-nowrap"
-              >
-                Complete Profile
-              </button>
-            </div>
-          </div>
-        )}
-
         {/* Error Message */}
         {error && (
           <div className="glass-card p-4 rounded-xl border-red-500/50 bg-red-500/10 mb-6 animate-scale-in">
@@ -386,9 +393,6 @@ function JobSeekerDashboard({ onNavigate }) {
                     <p className="text-3xl font-bold text-slate-100 mt-1">
                       {stats.profileViews}
                     </p>
-                    <p className="text-green-400 text-sm font-medium">
-                      +12 this week
-                    </p>
                   </div>
                   <div className="p-3 bg-blue-500/20 rounded-xl">
                     <svg
@@ -425,9 +429,6 @@ function JobSeekerDashboard({ onNavigate }) {
                     </p>
                     <p className="text-3xl font-bold text-slate-100 mt-1">
                       {stats.interviewsScheduled}
-                    </p>
-                    <p className="text-blue-400 text-sm font-medium">
-                      2 this week
                     </p>
                   </div>
                   <div className="p-3 bg-purple-500/20 rounded-xl">
@@ -610,11 +611,12 @@ function JobSeekerDashboard({ onNavigate }) {
 
       <Footer user={user} onNavigate={onNavigate} />
 
-      {/* Profile Completion Modal */}
-      <ProfileCompletionModal
-        isOpen={shouldShowModal}
-        onClose={dismissModal}
-        onNavigate={onNavigate}
+      {/* Profile Setup Modal */}
+      <JobSeekerSetupModal
+        isOpen={showProfileSetup}
+        onClose={() => setShowProfileSetup(false)}
+        onComplete={handleProfileSetupComplete}
+        user={user}
       />
     </div>
   );

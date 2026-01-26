@@ -318,7 +318,7 @@ function JobListingsPage({ onNavigate }) {
                   name="jobType"
                   value={filters.jobType}
                   onChange={handleFilterChange}
-                  className="input-field h-10"
+                  className="input-field h-12 py-3"
                 >
                   {jobTypes.map((type) => (
                     <option key={type.value} value={type.value}>
@@ -336,7 +336,7 @@ function JobListingsPage({ onNavigate }) {
                   name="workMode"
                   value={filters.workMode}
                   onChange={handleFilterChange}
-                  className="input-field h-10"
+                  className="input-field h-12 py-3"
                 >
                   {workModes.map((mode) => (
                     <option key={mode.value} value={mode.value}>
@@ -354,7 +354,7 @@ function JobListingsPage({ onNavigate }) {
                   name="experienceLevel"
                   value={filters.experienceLevel}
                   onChange={handleFilterChange}
-                  className="input-field h-10"
+                  className="input-field h-12 py-3"
                 >
                   {experienceLevels.map((level) => (
                     <option key={level.value} value={level.value}>
@@ -372,7 +372,7 @@ function JobListingsPage({ onNavigate }) {
                   name="category"
                   value={filters.category}
                   onChange={handleFilterChange}
-                  className="input-field h-10"
+                  className="input-field h-12 py-3"
                 >
                   {categories.map((cat) => (
                     <option key={cat.value} value={cat.value}>
