@@ -17,6 +17,7 @@ function JobSeekerDashboard({ onNavigate }) {
   });
   const [recentApplications, setRecentApplications] = useState([]);
   const [recommendedJobs, setRecommendedJobs] = useState([]);
+  const [recommendationBasis, setRecommendationBasis] = useState("general");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -107,9 +108,9 @@ function JobSeekerDashboard({ onNavigate }) {
       );
       const applicationsData = await applicationsResponse.json();
 
-      // Fetch recommended jobs
+      // Fetch recommended jobs based on user preferences
       const jobsResponse = await fetch(
-        `${import.meta.env.VITE_API_URL}/jobs?limit=3`,
+        `${import.meta.env.VITE_API_URL}/jobs/recommended?limit=3`,
         { headers }
       );
       const jobsData = await jobsResponse.json();
@@ -139,8 +140,12 @@ function JobSeekerDashboard({ onNavigate }) {
             app.job?.company?.employerProfile?.companyName ||
             "N/A",
           appliedDate: formatDate(app.createdAt),
-          salary: app.job?.salary
-            ? `$${app.job.salary.min}k - $${app.job.salary.max}k`
+          salary: app.job?.salary && (app.job.salary.min || app.job.salary.max)
+            ? `${app.job.salary.currency === 'NPR' ? 'NPR ' : '$'}${
+                app.job.salary.min ? Math.round(app.job.salary.min / 1000) : ''
+              }${app.job.salary.min && app.job.salary.max ? 'k - ' : app.job.salary.min ? 'k+' : 'Up to '}${
+                app.job.salary.max ? Math.round(app.job.salary.max / 1000) + 'k' : ''
+              }`
             : "N/A",
           location: app.job?.location || "N/A",
         }));
@@ -174,11 +179,16 @@ function JobSeekerDashboard({ onNavigate }) {
             job.company?.employerProfile?.companyName ||
             "N/A",
           posted: formatDate(job.createdAt),
-          salary: job.salary
-            ? `$${job.salary.min}k - $${job.salary.max}k`
+          salary: job.salary && (job.salary.min || job.salary.max)
+            ? `${job.salary.currency === 'NPR' ? 'NPR ' : '$'}${
+                job.salary.min ? Math.round(job.salary.min / 1000) : ''
+              }${job.salary.min && job.salary.max ? 'k - ' : job.salary.min ? 'k+' : 'Up to '}${
+                job.salary.max ? Math.round(job.salary.max / 1000) + 'k' : ''
+              }`
             : "Competitive",
         }));
         setRecommendedJobs(jobs);
+        setRecommendationBasis(jobsData.data.recommendationBasis || "general");
       }
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
@@ -531,9 +541,16 @@ function JobSeekerDashboard({ onNavigate }) {
                 style={{ animationDelay: "0.2s" }}
               >
                 <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-2xl font-bold text-slate-100">
-                    Recommended for You
-                  </h2>
+                  <div>
+                    <h2 className="text-2xl font-bold text-slate-100">
+                      Recommended for You
+                    </h2>
+                    {user?.jobSeekerProfile?.jobPreferences?.categories?.length > 0 && (
+                      <p className="text-sm text-slate-400 mt-1">
+                        Based on your preferred categories: {user.jobSeekerProfile.jobPreferences.categories.join(", ")}
+                      </p>
+                    )}
+                  </div>
                   <button
                     onClick={() => onNavigate("job-listings")}
                     className="text-primary-400 hover:text-primary-300 transition-colors text-sm font-semibold"
@@ -549,13 +566,29 @@ function JobSeekerDashboard({ onNavigate }) {
                         className="glass-card-hover p-4 rounded-xl transition-all duration-300"
                       >
                         <div className="flex justify-between items-start mb-3">
-                          <div>
-                            <h3 className="font-semibold text-slate-100 mb-1">
-                              {job.title}
-                            </h3>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h3 className="font-semibold text-slate-100">
+                                {job.title}
+                              </h3>
+                              {recommendationBasis === "preferences" && 
+                               user?.jobSeekerProfile?.jobPreferences?.categories?.includes(job.category) && (
+                                <span className="px-2 py-1 bg-primary-500/20 text-primary-400 text-xs rounded-full border border-primary-500/30">
+                                  Match
+                                </span>
+                              )}
+                            </div>
                             <p className="text-primary-400 text-sm font-medium">
                               {job.company}
                             </p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="px-2 py-1 bg-slate-700/50 text-slate-300 text-xs rounded-full capitalize">
+                                {job.category}
+                              </span>
+                              <span className="px-2 py-1 bg-slate-700/50 text-slate-300 text-xs rounded-full capitalize">
+                                {job.jobType}
+                              </span>
+                            </div>
                           </div>
                           <span
                             className={`px-3 py-1 rounded-full text-xs font-medium border ${
@@ -599,7 +632,28 @@ function JobSeekerDashboard({ onNavigate }) {
                           d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m8 0V6a2 2 0 012 2v6a2 2 0 01-2 2H8a2 2 0 01-2-2V8a2 2 0 012-2V6"
                         />
                       </svg>
-                      <p className="text-slate-400">No jobs available</p>
+                      <p className="text-slate-400 mb-4">
+                        {user?.jobSeekerProfile?.jobPreferences?.categories?.length > 0 
+                          ? "No jobs available in your preferred categories"
+                          : "Set your job preferences to get personalized recommendations"
+                        }
+                      </p>
+                      <div className="flex gap-3 justify-center">
+                        {!user?.jobSeekerProfile?.jobPreferences?.categories?.length && (
+                          <button
+                            onClick={() => onNavigate("profile-settings")}
+                            className="btn-secondary px-4 py-2 text-sm"
+                          >
+                            Set Preferences
+                          </button>
+                        )}
+                        <button
+                          onClick={() => onNavigate("job-listings")}
+                          className="btn-primary px-4 py-2 text-sm"
+                        >
+                          Browse All Jobs
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>

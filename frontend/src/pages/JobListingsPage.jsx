@@ -3,9 +3,11 @@ import { useAuth } from "../contexts/AuthContext";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 import JobApplicationModal from "../components/JobApplicationModal";
+import { useJobCategories } from "../hooks/useJobCategories";
 
 function JobListingsPage({ onNavigate }) {
   const { user, logout } = useAuth();
+  const { categories } = useJobCategories(true); // includeAll = true for "All Categories" option
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -53,22 +55,6 @@ function JobListingsPage({ onNavigate }) {
     { value: "mid", label: "Mid Level" },
     { value: "senior", label: "Senior Level" },
     { value: "executive", label: "Executive" },
-  ];
-
-  const categories = [
-    { value: "", label: "All Categories" },
-    { value: "technology", label: "Technology" },
-    { value: "marketing", label: "Marketing" },
-    { value: "sales", label: "Sales" },
-    { value: "design", label: "Design" },
-    { value: "finance", label: "Finance" },
-    { value: "hr", label: "Human Resources" },
-    { value: "operations", label: "Operations" },
-    { value: "customer-service", label: "Customer Service" },
-    { value: "healthcare", label: "Healthcare" },
-    { value: "education", label: "Education" },
-    { value: "legal", label: "Legal" },
-    { value: "other", label: "Other" },
   ];
 
   const fetchJobs = async () => {

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { showToast } from "./ToastContainer";
 import LocationAutocomplete from "./LocationAutocomplete";
+import SearchableCategories from "./SearchableCategories";
 
 function JobSeekerSetupModal({ isOpen, onClose, onComplete, user }) {
   const [isLoading, setIsLoading] = useState(false);
@@ -349,6 +350,14 @@ function JobSeekerSetupModal({ isOpen, onClose, onComplete, user }) {
               </label>
             ))}
           </div>
+        </div>
+
+        <div>
+          <SearchableCategories
+            selectedCategories={profileData.categories}
+            onCategoriesChange={(categories) => handleInputChange("categories", categories)}
+            required={false}
+          />
         </div>
 
         <div>

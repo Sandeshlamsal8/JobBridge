@@ -4,6 +4,7 @@ import { showToast } from "../components/ToastContainer";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 import LocationAutocomplete from "../components/LocationAutocomplete";
+import SearchableCategories from "../components/SearchableCategories";
 import { useProfileCompletion } from "../hooks/useProfileCompletion";
 
 function ProfileSettings({ onNavigate }) {
@@ -88,11 +89,6 @@ function ProfileSettings({ onNavigate }) {
         return;
       }
 
-      console.log(
-        "Fetching profile with token:",
-        token.substring(0, 20) + "..."
-      );
-
       const response = await fetch(
         `${import.meta.env.VITE_API_URL}/users/profile`,
         {
@@ -102,14 +98,10 @@ function ProfileSettings({ onNavigate }) {
         }
       );
 
-      console.log("Profile response status:", response.status);
-
       const data = await response.json();
-      console.log("Profile response data:", data);
 
       if (data.success) {
         const profile = data.data.user;
-        console.log("User profile loaded:", profile);
 
         // Set basic info conditionally based on user type
         const basicInfoData = {
@@ -218,8 +210,6 @@ function ProfileSettings({ onNavigate }) {
         };
       }
 
-      console.log("Updating basic info:", updateData);
-
       const response = await fetch(
         `${import.meta.env.VITE_API_URL}/users/profile`,
         {
@@ -232,10 +222,7 @@ function ProfileSettings({ onNavigate }) {
         }
       );
 
-      console.log("Update response status:", response.status);
-
       const data = await response.json();
-      console.log("Update response data:", data);
 
       if (data.success) {
         showToast("Basic information updated successfully", "success");
@@ -1246,65 +1233,19 @@ function ProfileSettings({ onNavigate }) {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-slate-300 mb-3">
-                    Job Categories
-                  </label>
-                  <p className="text-xs text-slate-400 mb-3">
-                    Select industries and fields you're interested in
-                  </p>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {[
-                      "technology",
-                      "healthcare",
-                      "finance",
-                      "education",
-                      "marketing",
-                      "sales",
-                      "design",
-                      "engineering",
-                      "consulting",
-                      "retail",
-                      "manufacturing",
-                      "media",
-                      "legal",
-                      "nonprofit",
-                      "government",
-                    ].map((category) => (
-                      <label
-                        key={category}
-                        className="flex items-center gap-2 p-3 glass-card rounded-lg cursor-pointer hover:bg-dark-700/30 transition-colors"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={jobSeekerProfile.jobPreferences.categories.includes(
-                            category
-                          )}
-                          onChange={(e) => {
-                            const updatedCategories = e.target.checked
-                              ? [
-                                  ...jobSeekerProfile.jobPreferences.categories,
-                                  category,
-                                ]
-                              : jobSeekerProfile.jobPreferences.categories.filter(
-                                  (c) => c !== category
-                                );
-
-                            setJobSeekerProfile((prev) => ({
-                              ...prev,
-                              jobPreferences: {
-                                ...prev.jobPreferences,
-                                categories: updatedCategories,
-                              },
-                            }));
-                          }}
-                          className="rounded border-slate-600 bg-dark-700 text-primary-500"
-                        />
-                        <span className="text-sm text-slate-300 capitalize">
-                          {category}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
+                  <SearchableCategories
+                    selectedCategories={jobSeekerProfile.jobPreferences.categories}
+                    onCategoriesChange={(categories) => {
+                      setJobSeekerProfile((prev) => ({
+                        ...prev,
+                        jobPreferences: {
+                          ...prev.jobPreferences,
+                          categories: categories,
+                        },
+                      }));
+                    }}
+                    required={false}
+                  />
                 </div>
 
                 <div>

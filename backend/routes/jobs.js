@@ -134,6 +134,155 @@ router.get(
   }
 );
 
+// @route   GET /api/jobs/categories
+// @desc    Get all available job categories with search functionality
+// @access  Public
+router.get("/categories", async (req, res) => {
+  try {
+    const { search } = req.query;
+
+    // All available categories from the Job model enum
+    const allCategories = [
+      "technology",
+      "marketing", 
+      "sales",
+      "design",
+      "finance",
+      "hr",
+      "operations",
+      "customer-service",
+      "healthcare",
+      "education",
+      "legal",
+      "other",
+    ];
+
+    // Create category objects with display names and job counts
+    let categories = await Promise.all(
+      allCategories.map(async (category) => {
+        const jobCount = await Job.countDocuments({ 
+          status: "active", 
+          category: category 
+        });
+        
+        return {
+          value: category,
+          label: category
+            .split("-")
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(" "),
+          jobCount: jobCount
+        };
+      })
+    );
+
+    // Filter by search term if provided
+    if (search) {
+      const searchTerm = search.toLowerCase();
+      categories = categories.filter(category => 
+        category.label.toLowerCase().includes(searchTerm) ||
+        category.value.toLowerCase().includes(searchTerm)
+      );
+    }
+
+    // Sort by job count (descending) then by label
+    categories.sort((a, b) => {
+      if (b.jobCount !== a.jobCount) {
+        return b.jobCount - a.jobCount;
+      }
+      return a.label.localeCompare(b.label);
+    });
+
+    res.json({
+      success: true,
+      data: { categories },
+    });
+  } catch (error) {
+    console.error("Get categories error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+});
+
+// @route   GET /api/jobs/recommended
+// @desc    Get recommended jobs for job seeker based on their preferences
+// @access  Private (Job seekers only)
+router.get(
+  "/recommended",
+  [auth, requireUserType("jobseeker")],
+  async (req, res) => {
+    try {
+      const { limit = 10 } = req.query;
+
+      // Get user's job preferences
+      const user = await require("../models/User").findById(req.user.userId);
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: "User not found",
+        });
+      }
+
+      const userCategories = user.jobSeekerProfile?.jobPreferences?.categories || [];
+
+      let jobs = [];
+
+      if (userCategories.length > 0) {
+        // Find jobs matching user's preferred categories
+        jobs = await Job.find({
+          status: "active",
+          category: { $in: userCategories }
+        })
+        .populate(
+          "company",
+          "firstName lastName employerProfile.companyName employerProfile.companySize"
+        )
+        .sort({ createdAt: -1, featured: -1 })
+        .limit(parseInt(limit));
+      }
+
+      // If not enough jobs found or no preferences set, get general active jobs
+      if (jobs.length < limit) {
+        const remainingLimit = limit - jobs.length;
+        const existingJobIds = jobs.map(job => job._id);
+        
+        const additionalJobs = await Job.find({
+          status: "active",
+          _id: { $nin: existingJobIds }
+        })
+        .populate(
+          "company",
+          "firstName lastName employerProfile.companyName employerProfile.companySize"
+        )
+        .sort({ featured: -1, createdAt: -1 })
+        .limit(remainingLimit);
+
+        jobs = [...jobs, ...additionalJobs];
+      }
+
+      res.json({
+        success: true,
+        data: {
+          jobs,
+          recommendationBasis: userCategories.length > 0 ? "preferences" : "general",
+          userPreferences: userCategories
+        },
+      });
+    } catch (error) {
+      console.error("Get recommended jobs error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Server error",
+        error:
+          process.env.NODE_ENV === "development" ? error.message : undefined,
+      });
+    }
+  }
+);
+
 // @route   GET /api/jobs/:id
 // @desc    Get single job by ID
 // @access  Public

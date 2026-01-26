@@ -5,9 +5,11 @@ import { isCompanyProfileComplete } from "../utils/companyProfile";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 import LocationAutocomplete from "../components/LocationAutocomplete";
+import { useJobCategories } from "../hooks/useJobCategories";
 
 function PostJobPage({ onNavigate }) {
   const { user, logout } = useAuth();
+  const { categories, isLoading: categoriesLoading, error: categoriesError } = useJobCategories();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
@@ -72,21 +74,6 @@ function PostJobPage({ onNavigate }) {
     { value: "mid", label: "Mid Level" },
     { value: "senior", label: "Senior Level" },
     { value: "executive", label: "Executive" },
-  ];
-
-  const categories = [
-    { value: "technology", label: "Technology" },
-    { value: "marketing", label: "Marketing" },
-    { value: "sales", label: "Sales" },
-    { value: "design", label: "Design" },
-    { value: "finance", label: "Finance" },
-    { value: "hr", label: "Human Resources" },
-    { value: "operations", label: "Operations" },
-    { value: "customer-service", label: "Customer Service" },
-    { value: "healthcare", label: "Healthcare" },
-    { value: "education", label: "Education" },
-    { value: "legal", label: "Legal" },
-    { value: "other", label: "Other" },
   ];
 
   const handleChange = (e) => {
@@ -357,13 +344,19 @@ function PostJobPage({ onNavigate }) {
                   onChange={handleChange}
                   className="input-field h-12 cursor-pointer"
                   required
-                  disabled={isLoading}
+                  disabled={isLoading || categoriesLoading}
                 >
-                  {categories.map((cat) => (
-                    <option key={cat.value} value={cat.value}>
-                      {cat.label}
-                    </option>
-                  ))}
+                  {categoriesLoading ? (
+                    <option value="">Loading categories...</option>
+                  ) : categoriesError ? (
+                    <option value="">Error loading categories</option>
+                  ) : (
+                    categories.map((cat) => (
+                      <option key={cat.value} value={cat.value}>
+                        {cat.label} {cat.jobCount > 0 && `(${cat.jobCount} jobs)`}
+                      </option>
+                    ))
+                  )}
                 </select>
                 <p className="text-xs text-slate-500 mt-1">
                   Select the primary job category

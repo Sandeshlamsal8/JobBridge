@@ -38,7 +38,6 @@ function ApplicationReviewPage({ onNavigate, applicationId }) {
       const apiUrl = `${
         import.meta.env.VITE_API_URL || "http://localhost:5000/api"
       }/applications/${applicationId}`;
-      console.log("Fetching application from:", apiUrl);
 
       const response = await fetch(apiUrl, {
         headers: {
@@ -46,9 +45,7 @@ function ApplicationReviewPage({ onNavigate, applicationId }) {
         },
       });
 
-      console.log("Response status:", response.status);
       const data = await response.json();
-      console.log("Response data:", data);
 
       if (data.success) {
         setApplication(data.data.application);
