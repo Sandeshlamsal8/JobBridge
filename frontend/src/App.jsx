@@ -20,6 +20,7 @@ import ProfileSettings from "./pages/ProfileSettings";
 import AccountSettings from "./pages/AccountSettings";
 import ContactPage from "./pages/ContactPage";
 import CandidateProfilePage from "./pages/CandidateProfilePage";
+import CompanyProfilePage from "./pages/CompanyProfilePage";
 import ApplicationReviewPage from "./pages/ApplicationReviewPage";
 import JobDetailsPage from "./pages/JobDetailsPage";
 
@@ -188,6 +189,20 @@ function AppContent() {
             <ApplicationReviewPage
               onNavigate={handleNavigate}
               applicationId={applicationId}
+            />
+          ) : (
+            <HomePage onNavigate={handleNavigate} />
+          );
+        }
+
+        // Dynamic Routes - Company Profile
+        if (currentPage.startsWith("company-profile/")) {
+          const companyId = currentPage.split("/")[1];
+          return isAuthenticated && user?.userType === "jobseeker" ? (
+            <CompanyProfilePage
+              onNavigate={handleNavigate}
+              companyId={companyId}
+              referrer={pageData?.referrer}
             />
           ) : (
             <HomePage onNavigate={handleNavigate} />

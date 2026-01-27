@@ -1,4 +1,5 @@
 const express = require("express");
+const mongoose = require("mongoose");
 const { body, validationResult } = require("express-validator");
 const SavedJob = require("../models/SavedJob");
 const Job = require("../models/Job");
@@ -48,7 +49,7 @@ router.post(
 
       // Check if job is already saved
       const existingSavedJob = await SavedJob.findOne({
-        user: req.user.userId,
+        user: req.user.id,
         job: jobId,
       });
 
@@ -81,7 +82,7 @@ router.post(
 
       // Create new saved job
       const savedJob = new SavedJob({
-        user: req.user.userId,
+        user: req.user.id,
         job: jobId,
         notes,
         priority,
@@ -117,7 +118,7 @@ router.post(
           process.env.NODE_ENV === "development" ? error.message : undefined,
       });
     }
-  }
+  },
 );
 
 // @route   GET /api/saved-jobs
@@ -143,16 +144,23 @@ router.get("/", [auth, requireUserType("jobseeker")], async (req, res) => {
       sortOrder: sortOrder === "desc" ? -1 : 1,
     };
 
-    const savedJobs = await SavedJob.getUserSavedJobs(req.user.userId, options);
-    const totalCount = await SavedJob.getSavedJobsCount(
-      req.user.userId,
-      status
-    );
+    const savedJobs = await SavedJob.getUserSavedJobs(req.user.id, options);
+    const totalCount = await SavedJob.getSavedJobsCount(req.user.id, status);
+
+    // Process saved jobs to remove avatar buffer data
+    const processedSavedJobs = savedJobs.map((savedJob) => {
+      const savedJobObj = savedJob.toObject();
+      if (savedJobObj.job?.company?.profile?.avatar?.data) {
+        // Remove the buffer data completely
+        delete savedJobObj.job.company.profile.avatar.data;
+      }
+      return savedJobObj;
+    });
 
     res.json({
       success: true,
       data: {
-        savedJobs,
+        savedJobs: processedSavedJobs,
         pagination: {
           currentPage: Math.floor(skip / limit) + 1,
           totalPages: Math.ceil(totalCount / limit),
@@ -181,8 +189,8 @@ router.get(
   async (req, res) => {
     try {
       const savedJob = await SavedJob.isJobSavedByUser(
-        req.user.userId,
-        req.params.jobId
+        req.user.id,
+        req.params.jobId,
       );
 
       res.json({
@@ -201,7 +209,7 @@ router.get(
           process.env.NODE_ENV === "development" ? error.message : undefined,
       });
     }
-  }
+  },
 );
 
 // @route   PUT /api/saved-jobs/:id
@@ -240,7 +248,7 @@ router.put(
 
       const savedJob = await SavedJob.findOne({
         _id: req.params.id,
-        user: req.user.userId,
+        user: req.user.id,
       });
 
       if (!savedJob) {
@@ -277,7 +285,7 @@ router.put(
           process.env.NODE_ENV === "development" ? error.message : undefined,
       });
     }
-  }
+  },
 );
 
 // @route   DELETE /api/saved-jobs/:id
@@ -290,7 +298,7 @@ router.delete(
     try {
       const savedJob = await SavedJob.findOneAndDelete({
         _id: req.params.id,
-        user: req.user.userId,
+        user: req.user.id,
       });
 
       if (!savedJob) {
@@ -313,7 +321,7 @@ router.delete(
           process.env.NODE_ENV === "development" ? error.message : undefined,
       });
     }
-  }
+  },
 );
 
 // @route   GET /api/saved-jobs/stats
@@ -322,7 +330,7 @@ router.delete(
 router.get("/stats", [auth, requireUserType("jobseeker")], async (req, res) => {
   try {
     const stats = await SavedJob.aggregate([
-      { $match: { user: new mongoose.Types.ObjectId(req.user.userId) } },
+      { $match: { user: new mongoose.Types.ObjectId(req.user.id) } },
       {
         $group: {
           _id: "$status",

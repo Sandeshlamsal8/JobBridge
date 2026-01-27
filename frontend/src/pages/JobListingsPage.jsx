@@ -67,7 +67,7 @@ function JobListingsPage({ onNavigate }) {
       });
 
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/jobs?${queryParams}`
+        `${import.meta.env.VITE_API_URL}/jobs?${queryParams}`,
       );
       const data = await response.json();
 
@@ -93,13 +93,13 @@ function JobListingsPage({ onNavigate }) {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
 
       const data = await response.json();
       if (data.success) {
         const savedJobIds = new Set(
-          data.data.savedJobs.map((savedJob) => savedJob.job._id)
+          data.data.savedJobs.map((savedJob) => savedJob.job._id),
         );
         setSavedJobs(savedJobIds);
       }
@@ -144,7 +144,7 @@ function JobListingsPage({ onNavigate }) {
   const handleApplyClick = (job) => {
     if (user?.userType !== "jobseeker") {
       alert(
-        "Only job seekers can apply for jobs. Please login as a job seeker."
+        "Only job seekers can apply for jobs. Please login as a job seeker.",
       );
       return;
     }
@@ -174,7 +174,7 @@ function JobListingsPage({ onNavigate }) {
             headers: {
               Authorization: `Bearer ${token}`,
             },
-          }
+          },
         );
         const data = await response.json();
 
@@ -189,7 +189,7 @@ function JobListingsPage({ onNavigate }) {
               headers: {
                 Authorization: `Bearer ${token}`,
               },
-            }
+            },
           );
 
           setSavedJobs((prev) => {
@@ -209,7 +209,7 @@ function JobListingsPage({ onNavigate }) {
               Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify({ jobId }),
-          }
+          },
         );
 
         if (response.ok) {
@@ -418,9 +418,22 @@ function JobListingsPage({ onNavigate }) {
                     <h3 className="text-xl font-bold text-slate-100 mb-2 hover:text-primary-400 transition-colors cursor-pointer">
                       {job.title}
                     </h3>
-                    <p className="text-primary-400 font-semibold mb-2">
-                      {job.companyName}
-                    </p>
+                    {user?.userType === "jobseeker" && job.company?._id ? (
+                      <button
+                        onClick={() =>
+                          onNavigate(`company-profile/${job.company._id}`, {
+                            referrer: "job-listings",
+                          })
+                        }
+                        className="text-primary-400 font-semibold mb-2 hover:text-primary-300 transition-colors underline text-left"
+                      >
+                        {job.companyName}
+                      </button>
+                    ) : (
+                      <p className="text-primary-400 font-semibold mb-2">
+                        {job.companyName}
+                      </p>
+                    )}
                     <div className="flex flex-wrap items-center gap-4 text-sm text-slate-400 mb-3">
                       <span className="flex items-center gap-1">
                         <svg

@@ -30,8 +30,8 @@ router.get("/avatar/:userId", async (req, res) => {
       "Content-Type": user.profile.avatar.contentType,
       "Content-Length": user.profile.avatar.size,
       "Cache-Control": "no-cache, no-store, must-revalidate", // Prevent caching
-      "Pragma": "no-cache",
-      "Expires": "0",
+      Pragma: "no-cache",
+      Expires: "0",
     });
 
     // Send the image data
@@ -105,7 +105,7 @@ router.post(
         message: "Server error while uploading profile picture",
       });
     }
-  }
+  },
 );
 
 // @route   PUT /api/users/change-password
@@ -163,7 +163,7 @@ router.put("/change-password", auth, async (req, res) => {
     } catch (emailError) {
       console.error(
         "Failed to send password change confirmation email:",
-        emailError
+        emailError,
       );
       // Don't fail the password change if email fails
     }
@@ -309,6 +309,97 @@ router.get("/profile", auth, async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Server error while fetching profile",
+    });
+  }
+});
+
+// @route   GET /api/users/company/:id
+// @desc    Get company profile by ID (for jobseekers to view employer profiles)
+// @access  Private (Jobseekers only)
+router.get("/company/:id", auth, async (req, res) => {
+  try {
+    console.log("Company profile request:", {
+      userId: req.user.id,
+      userType: req.user.userType,
+      companyId: req.params.id,
+    });
+
+    // Only allow jobseekers to view company profiles
+    if (req.user.userType !== "jobseeker") {
+      console.log("Access denied - not a jobseeker");
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Only jobseekers can view company profiles.",
+      });
+    }
+
+    const company = await User.findById(req.params.id);
+    console.log("Company found:", company ? "Yes" : "No");
+
+    if (!company) {
+      console.log("Company not found");
+      return res.status(404).json({
+        success: false,
+        message: "Company not found",
+      });
+    }
+
+    console.log("Company userType:", company.userType);
+
+    // Only allow viewing employer profiles
+    if (company.userType !== "employer") {
+      console.log("Access denied - not an employer profile");
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Can only view employer profiles.",
+      });
+    }
+
+    console.log("Generating profile JSON...");
+    try {
+      const profileData = company.toProfileJSON();
+      console.log("Profile JSON generated successfully");
+
+      res.json({
+        success: true,
+        data: {
+          company: profileData,
+        },
+      });
+    } catch (profileError) {
+      console.error("Error generating profile JSON:", profileError);
+      // Fallback to basic info if toProfileJSON fails
+      const basicCompanyInfo = {
+        _id: company._id,
+        firstName: company.firstName,
+        lastName: company.lastName,
+        email: company.email,
+        userType: company.userType,
+        employerProfile: company.employerProfile,
+        profile: company.profile
+          ? {
+              phone: company.profile.phone,
+              location: company.profile.location,
+              bio: company.profile.bio,
+              website: company.profile.website,
+              avatar: company.profile.avatar ? company.avatarUrl : null,
+            }
+          : null,
+        createdAt: company.createdAt,
+      };
+
+      res.json({
+        success: true,
+        data: {
+          company: basicCompanyInfo,
+        },
+      });
+    }
+  } catch (error) {
+    console.error("Get company profile error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while fetching company profile",
     });
   }
 });

@@ -38,7 +38,7 @@ const savedJobSchema = new mongoose.Schema(
     timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
-  }
+  },
 );
 
 // Compound index to prevent duplicate saves
@@ -85,7 +85,7 @@ savedJobSchema.statics.getUserSavedJobs = function (userId, options = {}) {
         "title companyName location jobType workMode salary status createdAt",
       populate: {
         path: "company",
-        select: "firstName lastName employerProfile.companyName profile.avatar -profile.avatar.data",
+        select: "firstName lastName employerProfile.companyName profile",
       },
     })
     .sort({ [sortBy]: sortOrder })

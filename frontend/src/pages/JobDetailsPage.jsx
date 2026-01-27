@@ -19,6 +19,8 @@ function JobDetailsPage({ onNavigate, jobId }) {
   });
   const [hasApplied, setHasApplied] = useState(false);
   const [existingApplication, setExistingApplication] = useState(null);
+  const [isSaved, setIsSaved] = useState(false);
+  const [savedJobId, setSavedJobId] = useState(null);
   const { toast, showSuccess, showError, hideToast } = useToast();
 
   useEffect(() => {
@@ -26,6 +28,7 @@ function JobDetailsPage({ onNavigate, jobId }) {
       fetchJobDetails();
       if (user?.userType === "jobseeker") {
         checkExistingApplication();
+        checkSavedStatus();
       }
     }
   }, [jobId, user]);
@@ -36,15 +39,14 @@ function JobDetailsPage({ onNavigate, jobId }) {
 
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/jobs/${jobId}`
+        `${import.meta.env.VITE_API_URL}/jobs/${jobId}`,
       );
 
       const data = await response.json();
 
       if (data.success) {
         setJob(data.data.job);
-        // Increment view count
-        await incrementViewCount();
+        // View count is automatically incremented by the backend
       } else {
         setError(data.message || "Failed to load job details");
       }
@@ -53,16 +55,6 @@ function JobDetailsPage({ onNavigate, jobId }) {
       setError("Failed to load job details. Please try again.");
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const incrementViewCount = async () => {
-    try {
-      await fetch(`${import.meta.env.VITE_API_URL}/jobs/${jobId}/view`, {
-        method: "POST",
-      });
-    } catch (error) {
-      console.error("Error incrementing view count:", error);
     }
   };
 
@@ -77,7 +69,7 @@ function JobDetailsPage({ onNavigate, jobId }) {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
 
       const data = await response.json();
@@ -85,7 +77,7 @@ function JobDetailsPage({ onNavigate, jobId }) {
       if (data.success && data.data.applications.length > 0) {
         // Find the most recent non-withdrawn application
         const activeApplication = data.data.applications.find(
-          (app) => app.status !== "withdrawn"
+          (app) => app.status !== "withdrawn",
         );
 
         if (activeApplication) {
@@ -103,6 +95,93 @@ function JobDetailsPage({ onNavigate, jobId }) {
       console.error("Error checking existing application:", error);
       // Don't show error to user, just assume they haven't applied
       setHasApplied(false);
+    }
+  };
+
+  const checkSavedStatus = async () => {
+    try {
+      const token = sessionStorage.getItem("jobbridge_token");
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/saved-jobs/check/${jobId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      const data = await response.json();
+      if (data.success && data.data.savedJob) {
+        setIsSaved(true);
+        setSavedJobId(data.data.savedJob._id);
+      } else {
+        setIsSaved(false);
+        setSavedJobId(null);
+      }
+    } catch (error) {
+      console.error("Error checking saved status:", error);
+      // Don't show error to user, just assume not saved
+      setIsSaved(false);
+      setSavedJobId(null);
+    }
+  };
+
+  const toggleSaveJob = async () => {
+    if (user?.userType !== "jobseeker") {
+      showError(
+        "Only job seekers can save jobs. Please login as a job seeker.",
+      );
+      return;
+    }
+
+    try {
+      const token = sessionStorage.getItem("jobbridge_token");
+
+      if (isSaved && savedJobId) {
+        // Remove from saved jobs
+        const response = await fetch(
+          `${import.meta.env.VITE_API_URL}/saved-jobs/${savedJobId}`,
+          {
+            method: "DELETE",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        );
+
+        if (response.ok) {
+          setIsSaved(false);
+          setSavedJobId(null);
+          showSuccess("Job removed from saved jobs");
+        } else {
+          showError("Failed to remove job from saved jobs");
+        }
+      } else {
+        // Save the job
+        const response = await fetch(
+          `${import.meta.env.VITE_API_URL}/saved-jobs`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ jobId }),
+          },
+        );
+
+        const data = await response.json();
+        if (response.ok && data.success) {
+          setIsSaved(true);
+          setSavedJobId(data.data.savedJob._id);
+          showSuccess("Job saved successfully!");
+        } else {
+          showError(data.message || "Failed to save job");
+        }
+      }
+    } catch (error) {
+      console.error("Failed to toggle save job:", error);
+      showError("Failed to save/unsave job. Please try again.");
     }
   };
 
@@ -160,7 +239,7 @@ function JobDetailsPage({ onNavigate, jobId }) {
             Authorization: `Bearer ${token}`,
           },
           body: formData,
-        }
+        },
       );
 
       const data = await response.json();
@@ -194,7 +273,7 @@ function JobDetailsPage({ onNavigate, jobId }) {
 
     if (salary.min && salary.max) {
       return `${currency}${formatNumber(
-        salary.min
+        salary.min,
       )} - ${currency}${formatNumber(salary.max)} per ${salary.period}`;
     } else if (salary.min) {
       return `${currency}${formatNumber(salary.min)}+ per ${salary.period}`;
@@ -346,7 +425,20 @@ function JobDetailsPage({ onNavigate, jobId }) {
                           d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
                         />
                       </svg>
-                      {job.companyName}
+                      {user?.userType === "jobseeker" && job.company?._id ? (
+                        <button
+                          onClick={() =>
+                            onNavigate(`company-profile/${job.company._id}`, {
+                              referrer: `job-details/${jobId}`,
+                            })
+                          }
+                          className="text-primary-400 hover:text-primary-300 transition-colors underline"
+                        >
+                          {job.companyName}
+                        </button>
+                      ) : (
+                        job.companyName
+                      )}
                     </span>
                     <span>•</span>
                     <span className="flex items-center gap-2">
@@ -384,11 +476,39 @@ function JobDetailsPage({ onNavigate, jobId }) {
                     </span>
                   </div>
                 </div>
-                {job.urgent && (
-                  <span className="px-3 py-1 bg-red-500/20 text-red-400 rounded-full text-sm font-medium">
-                    Urgent
-                  </span>
-                )}
+                <div className="flex items-start gap-3">
+                  {/* Save Job Button */}
+                  {user?.userType === "jobseeker" && (
+                    <button
+                      onClick={toggleSaveJob}
+                      className={`p-3 rounded-xl transition-all ${
+                        isSaved
+                          ? "bg-red-500/20 text-red-400 hover:bg-red-500/30"
+                          : "bg-slate-700/50 text-slate-400 hover:bg-primary-500/20 hover:text-primary-400"
+                      }`}
+                      title={isSaved ? "Remove from saved jobs" : "Save job"}
+                    >
+                      <svg
+                        className="w-6 h-6"
+                        fill={isSaved ? "currentColor" : "none"}
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                        />
+                      </svg>
+                    </button>
+                  )}
+                  {job.urgent && (
+                    <span className="px-3 py-1 bg-red-500/20 text-red-400 rounded-full text-sm font-medium">
+                      Urgent
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* Salary */}
@@ -581,6 +701,66 @@ function JobDetailsPage({ onNavigate, jobId }) {
                     </div>
                   )}
                 </div>
+
+                {/* View Company Profile Button */}
+                {user?.userType === "jobseeker" && job.company?._id && (
+                  <div className="mt-6 pt-4 border-t border-slate-700/50">
+                    <button
+                      onClick={() =>
+                        onNavigate(`company-profile/${job.company._id}`, {
+                          referrer: `job-details/${jobId}`,
+                        })
+                      }
+                      className="w-full px-4 py-3 bg-slate-700/50 hover:bg-slate-600/50 text-slate-100 rounded-xl transition-all flex items-center justify-center gap-2"
+                    >
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                        />
+                      </svg>
+                      View Company Profile
+                    </button>
+                  </div>
+                )}
+
+                {/* Save Job Button */}
+                {user?.userType === "jobseeker" && (
+                  <div
+                    className={`${job.company?._id ? "mt-4" : "mt-6 pt-4 border-t border-slate-700/50"}`}
+                  >
+                    <button
+                      onClick={toggleSaveJob}
+                      className={`w-full px-4 py-3 rounded-xl transition-all flex items-center justify-center gap-2 ${
+                        isSaved
+                          ? "bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30"
+                          : "bg-primary-500/20 text-primary-400 hover:bg-primary-500/30 border border-primary-500/30"
+                      }`}
+                    >
+                      <svg
+                        className="w-5 h-5"
+                        fill={isSaved ? "currentColor" : "none"}
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                        />
+                      </svg>
+                      {isSaved ? "Remove from Saved Jobs" : "Save Job"}
+                    </button>
+                  </div>
+                )}
               </div>
 
               {user?.userType === "jobseeker" && !hasApplied && (
@@ -796,29 +976,32 @@ function JobDetailsPage({ onNavigate, jobId }) {
                               existingApplication.status === "pending"
                                 ? "text-yellow-400 bg-yellow-400/20 border-yellow-400/30"
                                 : existingApplication.status === "reviewed"
-                                ? "text-blue-400 bg-blue-400/20 border-blue-400/30"
-                                : existingApplication.status === "shortlisted"
-                                ? "text-cyan-400 bg-cyan-400/20 border-cyan-400/30"
-                                : existingApplication.status ===
-                                  "interview-scheduled"
-                                ? "text-green-400 bg-green-400/20 border-green-400/30"
-                                : existingApplication.status ===
-                                  "interview-completed"
-                                ? "text-purple-400 bg-purple-400/20 border-purple-400/30"
-                                : existingApplication.status === "offered"
-                                ? "text-emerald-400 bg-emerald-400/20 border-emerald-400/30"
-                                : existingApplication.status === "hired"
-                                ? "text-green-500 bg-green-500/20 border-green-500/30"
-                                : existingApplication.status === "rejected"
-                                ? "text-red-400 bg-red-400/20 border-red-400/30"
-                                : "text-slate-400 bg-slate-400/20 border-slate-400/30"
+                                  ? "text-blue-400 bg-blue-400/20 border-blue-400/30"
+                                  : existingApplication.status === "shortlisted"
+                                    ? "text-cyan-400 bg-cyan-400/20 border-cyan-400/30"
+                                    : existingApplication.status ===
+                                        "interview-scheduled"
+                                      ? "text-green-400 bg-green-400/20 border-green-400/30"
+                                      : existingApplication.status ===
+                                          "interview-completed"
+                                        ? "text-purple-400 bg-purple-400/20 border-purple-400/30"
+                                        : existingApplication.status ===
+                                            "offered"
+                                          ? "text-emerald-400 bg-emerald-400/20 border-emerald-400/30"
+                                          : existingApplication.status ===
+                                              "hired"
+                                            ? "text-green-500 bg-green-500/20 border-green-500/30"
+                                            : existingApplication.status ===
+                                                "rejected"
+                                              ? "text-red-400 bg-red-400/20 border-red-400/30"
+                                              : "text-slate-400 bg-slate-400/20 border-slate-400/30"
                             }`}
                           >
                             {existingApplication.status
                               .split("-")
                               .map(
                                 (word) =>
-                                  word.charAt(0).toUpperCase() + word.slice(1)
+                                  word.charAt(0).toUpperCase() + word.slice(1),
                               )
                               .join(" ")}
                           </span>
@@ -827,7 +1010,7 @@ function JobDetailsPage({ onNavigate, jobId }) {
                           <span className="text-slate-400">Applied:</span>
                           <span className="text-slate-300">
                             {new Date(
-                              existingApplication.createdAt
+                              existingApplication.createdAt,
                             ).toLocaleDateString()}
                           </span>
                         </div>
