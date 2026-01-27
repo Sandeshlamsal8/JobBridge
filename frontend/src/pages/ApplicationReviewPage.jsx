@@ -80,7 +80,7 @@ function ApplicationReviewPage({ onNavigate, applicationId }) {
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({ status: selectedStatus }),
-        }
+        },
       );
 
       const data = await response.json();
@@ -89,7 +89,7 @@ function ApplicationReviewPage({ onNavigate, applicationId }) {
         setApplication(data.data.application);
         setShowUpdateButton(false);
         showSuccess(
-          `Application status updated to: ${formatStatus(selectedStatus)}`
+          `Application status updated to: ${formatStatus(selectedStatus)}`,
         );
       } else {
         showError(data.message || "Failed to update status");
@@ -121,7 +121,7 @@ function ApplicationReviewPage({ onNavigate, applicationId }) {
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({ content: note, isPrivate: true }),
-        }
+        },
       );
 
       const data = await response.json();
@@ -177,6 +177,38 @@ function ApplicationReviewPage({ onNavigate, applicationId }) {
       hour: "2-digit",
       minute: "2-digit",
     });
+  };
+
+  const handleViewResume = async () => {
+    try {
+      const token = sessionStorage.getItem("jobbridge_token");
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/applications/cv/${application._id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      if (response.ok) {
+        // Create a blob from the response
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+
+        // Open in new tab
+        window.open(url, "_blank");
+
+        // Clean up the URL object after a delay
+        setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+      } else {
+        const errorData = await response.json();
+        showError(errorData.message || "Failed to load resume");
+      }
+    } catch (error) {
+      console.error("Error viewing resume:", error);
+      showError("Failed to load resume. Please try again.");
+    }
   };
 
   const handleLogout = async () => {
@@ -322,7 +354,7 @@ function ApplicationReviewPage({ onNavigate, applicationId }) {
             <div className="flex flex-col gap-3">
               <span
                 className={`px-4 py-2 rounded-full text-sm font-medium border ${getStatusColor(
-                  application.status
+                  application.status,
                 )}`}
               >
                 {formatStatus(application.status)}
@@ -384,29 +416,22 @@ function ApplicationReviewPage({ onNavigate, applicationId }) {
                         <p className="text-sm text-slate-400">
                           {application.resume.size
                             ? `${(application.resume.size / 1024).toFixed(
-                                2
+                                2,
                               )} KB`
                             : "Unknown size"}{" "}
                           • Uploaded{" "}
                           {application.resume.uploadedAt
                             ? new Date(
-                                application.resume.uploadedAt
+                                application.resume.uploadedAt,
                               ).toLocaleDateString()
                             : "recently"}
                         </p>
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <a
-                        href={`${
-                          import.meta.env.VITE_API_URL
-                        }/applications/cv/${application._id}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      <button
+                        onClick={handleViewResume}
                         className="btn-primary px-4 py-2 text-sm flex items-center gap-2"
-                        onClick={(e) => {
-                          console.log("Resume URL:", e.currentTarget.href);
-                        }}
                       >
                         <svg
                           className="w-4 h-4"
@@ -428,7 +453,7 @@ function ApplicationReviewPage({ onNavigate, applicationId }) {
                           />
                         </svg>
                         View Resume
-                      </a>
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -519,7 +544,7 @@ function ApplicationReviewPage({ onNavigate, applicationId }) {
                               href={`${
                                 import.meta.env.VITE_API_URL?.replace(
                                   "/api",
-                                  ""
+                                  "",
                                 ) || "http://localhost:5000"
                               }/${doc.path.replace(/\\/g, "/")}`}
                               target="_blank"

@@ -2,7 +2,7 @@ const express = require("express");
 const { body, validationResult, query } = require("express-validator");
 const Job = require("../models/Job");
 const Application = require("../models/Application");
-const { auth, requireUserType } = require("../middleware/auth");
+const { auth, optionalAuth, requireUserType } = require("../middleware/auth");
 
 const router = express.Router();
 
@@ -131,7 +131,7 @@ router.get(
           process.env.NODE_ENV === "development" ? error.message : undefined,
       });
     }
-  }
+  },
 );
 
 // @route   GET /api/jobs/categories
@@ -144,7 +144,7 @@ router.get("/categories", async (req, res) => {
     // All available categories from the Job model enum
     const allCategories = [
       "technology",
-      "marketing", 
+      "marketing",
       "sales",
       "design",
       "finance",
@@ -160,28 +160,29 @@ router.get("/categories", async (req, res) => {
     // Create category objects with display names and job counts
     let categories = await Promise.all(
       allCategories.map(async (category) => {
-        const jobCount = await Job.countDocuments({ 
-          status: "active", 
-          category: category 
+        const jobCount = await Job.countDocuments({
+          status: "active",
+          category: category,
         });
-        
+
         return {
           value: category,
           label: category
             .split("-")
-            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
             .join(" "),
-          jobCount: jobCount
+          jobCount: jobCount,
         };
-      })
+      }),
     );
 
     // Filter by search term if provided
     if (search) {
       const searchTerm = search.toLowerCase();
-      categories = categories.filter(category => 
-        category.label.toLowerCase().includes(searchTerm) ||
-        category.value.toLowerCase().includes(searchTerm)
+      categories = categories.filter(
+        (category) =>
+          category.label.toLowerCase().includes(searchTerm) ||
+          category.value.toLowerCase().includes(searchTerm),
       );
     }
 
@@ -226,7 +227,8 @@ router.get(
         });
       }
 
-      const userCategories = user.jobSeekerProfile?.jobPreferences?.categories || [];
+      const userCategories =
+        user.jobSeekerProfile?.jobPreferences?.categories || [];
 
       let jobs = [];
 
@@ -234,31 +236,31 @@ router.get(
         // Find jobs matching user's preferred categories
         jobs = await Job.find({
           status: "active",
-          category: { $in: userCategories }
+          category: { $in: userCategories },
         })
-        .populate(
-          "company",
-          "firstName lastName employerProfile.companyName employerProfile.companySize"
-        )
-        .sort({ createdAt: -1, featured: -1 })
-        .limit(parseInt(limit));
+          .populate(
+            "company",
+            "firstName lastName employerProfile.companyName employerProfile.companySize",
+          )
+          .sort({ createdAt: -1, featured: -1 })
+          .limit(parseInt(limit));
       }
 
       // If not enough jobs found or no preferences set, get general active jobs
       if (jobs.length < limit) {
         const remainingLimit = limit - jobs.length;
-        const existingJobIds = jobs.map(job => job._id);
-        
+        const existingJobIds = jobs.map((job) => job._id);
+
         const additionalJobs = await Job.find({
           status: "active",
-          _id: { $nin: existingJobIds }
+          _id: { $nin: existingJobIds },
         })
-        .populate(
-          "company",
-          "firstName lastName employerProfile.companyName employerProfile.companySize"
-        )
-        .sort({ featured: -1, createdAt: -1 })
-        .limit(remainingLimit);
+          .populate(
+            "company",
+            "firstName lastName employerProfile.companyName employerProfile.companySize",
+          )
+          .sort({ featured: -1, createdAt: -1 })
+          .limit(remainingLimit);
 
         jobs = [...jobs, ...additionalJobs];
       }
@@ -267,8 +269,9 @@ router.get(
         success: true,
         data: {
           jobs,
-          recommendationBasis: userCategories.length > 0 ? "preferences" : "general",
-          userPreferences: userCategories
+          recommendationBasis:
+            userCategories.length > 0 ? "preferences" : "general",
+          userPreferences: userCategories,
         },
       });
     } catch (error) {
@@ -280,17 +283,17 @@ router.get(
           process.env.NODE_ENV === "development" ? error.message : undefined,
       });
     }
-  }
+  },
 );
 
 // @route   GET /api/jobs/:id
 // @desc    Get single job by ID
-// @access  Public
-router.get("/:id", async (req, res) => {
+// @access  Public (with optional auth to check application status)
+router.get("/:id", optionalAuth, async (req, res) => {
   try {
     const job = await Job.findById(req.params.id).populate(
       "company",
-      "firstName lastName employerProfile.companyName employerProfile.companySize employerProfile.companyDescription employerProfile.companyWebsite"
+      "firstName lastName employerProfile.companyName employerProfile.companySize employerProfile.companyDescription employerProfile.companyWebsite",
     );
 
     if (!job) {
@@ -303,9 +306,30 @@ router.get("/:id", async (req, res) => {
     // Increment view count
     await job.incrementViewCount();
 
+    // Check if user has applied (if authenticated)
+    let hasApplied = false;
+    let applicationStatus = null;
+
+    if (req.user && req.user.userId) {
+      const existingApplication = await Application.findOne({
+        job: req.params.id,
+        applicant: req.user.userId,
+        status: { $ne: "withdrawn" },
+      });
+
+      if (existingApplication) {
+        hasApplied = true;
+        applicationStatus = existingApplication.status;
+      }
+    }
+
     res.json({
       success: true,
-      data: { job },
+      data: {
+        job,
+        hasApplied,
+        applicationStatus,
+      },
     });
   } catch (error) {
     console.error("Get job error:", error);
@@ -423,7 +447,7 @@ router.post(
 
       await job.populate(
         "company",
-        "firstName lastName employerProfile.companyName employerProfile.companySize"
+        "firstName lastName employerProfile.companyName employerProfile.companySize",
       );
 
       res.status(201).json({
@@ -440,7 +464,7 @@ router.post(
           process.env.NODE_ENV === "development" ? error.message : undefined,
       });
     }
-  }
+  },
 );
 
 // @route   PUT /api/jobs/:id
@@ -517,7 +541,7 @@ router.put(
 
       await job.populate(
         "company",
-        "firstName lastName employerProfile.companyName employerProfile.companySize"
+        "firstName lastName employerProfile.companyName employerProfile.companySize",
       );
 
       res.json({
@@ -534,7 +558,7 @@ router.put(
           process.env.NODE_ENV === "development" ? error.message : undefined,
       });
     }
-  }
+  },
 );
 
 // @route   DELETE /api/jobs/:id
@@ -620,7 +644,7 @@ router.get(
           process.env.NODE_ENV === "development" ? error.message : undefined,
       });
     }
-  }
+  },
 );
 
 // @route   GET /api/jobs/stats/categories

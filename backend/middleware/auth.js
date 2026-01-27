@@ -99,7 +99,7 @@ const requireAnyUserType = (userTypes) => {
       return res.status(403).json({
         success: false,
         message: `Access denied. One of the following account types required: ${userTypes.join(
-          ", "
+          ", ",
         )}`,
       });
     }
@@ -107,8 +107,57 @@ const requireAnyUserType = (userTypes) => {
   };
 };
 
+// Optional auth middleware - doesn't fail if no token provided
+const optionalAuth = async (req, res, next) => {
+  try {
+    // Get token from header
+    const authHeader = req.header("Authorization");
+
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      // No token provided, continue without user info
+      return next();
+    }
+
+    // Extract token
+    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+
+    if (!token) {
+      // No token provided, continue without user info
+      return next();
+    }
+
+    try {
+      // Verify token
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+      // Check if user still exists and is active
+      const user = await User.findById(decoded.userId).select("-password");
+
+      if (user && user.isActive) {
+        // Add user info to request if valid
+        req.user = {
+          id: decoded.userId,
+          userId: decoded.userId, // Keep both for compatibility
+          userType: user.userType,
+          email: user.email,
+        };
+      }
+    } catch (jwtError) {
+      // Token invalid, continue without user info
+      console.log("Optional auth - invalid token:", jwtError.message);
+    }
+
+    next();
+  } catch (error) {
+    console.error("Optional auth middleware error:", error);
+    // Don't fail the request, just continue without user info
+    next();
+  }
+};
+
 module.exports = {
   auth,
+  optionalAuth,
   requireUserType,
   requireAnyUserType,
 };

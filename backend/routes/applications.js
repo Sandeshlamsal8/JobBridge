@@ -135,7 +135,7 @@ router.post(
       } catch (notificationError) {
         console.error(
           "Failed to send new application notification:",
-          notificationError
+          notificationError,
         );
         // Don't fail the application creation if notification fails
       }
@@ -164,7 +164,53 @@ router.post(
           process.env.NODE_ENV === "development" ? error.message : undefined,
       });
     }
-  }
+  },
+);
+
+// @route   GET /api/applications/check/:jobId
+// @desc    Check if user has applied to a specific job
+// @access  Private (Job seekers only)
+router.get(
+  "/check/:jobId",
+  [auth, requireUserType("jobseeker")],
+  async (req, res) => {
+    try {
+      const application = await Application.findOne({
+        job: req.params.jobId,
+        applicant: req.user.userId,
+        status: { $ne: "withdrawn" },
+      }).select("status createdAt");
+
+      if (application) {
+        res.json({
+          success: true,
+          data: {
+            hasApplied: true,
+            application: {
+              status: application.status,
+              createdAt: application.createdAt,
+            },
+          },
+        });
+      } else {
+        res.json({
+          success: true,
+          data: {
+            hasApplied: false,
+            application: null,
+          },
+        });
+      }
+    } catch (error) {
+      console.error("Check application error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Server error",
+        error:
+          process.env.NODE_ENV === "development" ? error.message : undefined,
+      });
+    }
+  },
 );
 
 // @route   GET /api/applications/my-applications
@@ -183,7 +229,7 @@ router.get(
 
       const applications = await Application.getByApplicant(
         req.user.userId,
-        filters
+        filters,
       )
         .skip((page - 1) * limit)
         .limit(parseInt(limit));
@@ -212,7 +258,7 @@ router.get(
           process.env.NODE_ENV === "development" ? error.message : undefined,
       });
     }
-  }
+  },
 );
 
 // @route   GET /api/applications/employer/received
@@ -231,7 +277,7 @@ router.get(
 
       const applications = await Application.getByEmployer(
         req.user.userId,
-        filters
+        filters,
       )
         .skip((page - 1) * limit)
         .limit(parseInt(limit));
@@ -260,7 +306,7 @@ router.get(
           process.env.NODE_ENV === "development" ? error.message : undefined,
       });
     }
-  }
+  },
 );
 
 // @route   GET /api/applications/stats/employer
@@ -304,7 +350,7 @@ router.get(
           process.env.NODE_ENV === "development" ? error.message : undefined,
       });
     }
-  }
+  },
 );
 
 // @route   GET /api/applications/:id
@@ -318,14 +364,14 @@ router.get(
       const application = await Application.findById(req.params.id)
         .populate(
           "job",
-          "title companyName location jobType salary requirements responsibilities"
+          "title companyName location jobType salary requirements responsibilities",
         )
         .populate(
           "applicant",
-          "firstName lastName email profile jobSeekerProfile -profile.avatar.data"
+          "firstName lastName email profile jobSeekerProfile",
         )
-        .populate("employer", "firstName lastName employerProfile.companyName -profile.avatar.data")
-        .populate("notes.author", "firstName lastName -profile.avatar.data");
+        .populate("employer", "firstName lastName employerProfile.companyName")
+        .populate("notes.author", "firstName lastName");
 
       if (!application) {
         return res.status(404).json({
@@ -362,7 +408,7 @@ router.get(
             {
               source: "job_application",
               jobId: application.job._id,
-            }
+            },
           );
         } catch (viewError) {
           console.error("Failed to record profile view:", viewError);
@@ -383,7 +429,7 @@ router.get(
           process.env.NODE_ENV === "development" ? error.message : undefined,
       });
     }
-  }
+  },
 );
 
 // @route   PUT /api/applications/:id/status
@@ -478,12 +524,12 @@ router.put(
         await NotificationService.notifyApplicationStatusUpdate(
           application,
           status,
-          req.user.userId
+          req.user.userId,
         );
       } catch (notificationError) {
         console.error(
           "Failed to send status update notification:",
-          notificationError
+          notificationError,
         );
         // Don't fail the status update if notification fails
       }
@@ -502,7 +548,7 @@ router.put(
           process.env.NODE_ENV === "development" ? error.message : undefined,
       });
     }
-  }
+  },
 );
 
 // @route   POST /api/applications/:id/notes
@@ -567,7 +613,7 @@ router.post(
           process.env.NODE_ENV === "development" ? error.message : undefined,
       });
     }
-  }
+  },
 );
 
 // @route   PUT /api/applications/:id/withdraw
@@ -606,7 +652,7 @@ router.put(
       await application.updateStatus(
         "withdrawn",
         req.user.userId,
-        "Application withdrawn by candidate"
+        "Application withdrawn by candidate",
       );
 
       res.json({
@@ -622,7 +668,7 @@ router.put(
           process.env.NODE_ENV === "development" ? error.message : undefined,
       });
     }
-  }
+  },
 );
 
 // @route   GET /api/applications/cv/:applicationId
@@ -675,7 +721,7 @@ router.get(
         message: "Server error while serving CV",
       });
     }
-  }
+  },
 );
 
 module.exports = router;

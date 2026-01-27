@@ -227,7 +227,7 @@ const applicationSchema = new mongoose.Schema(
     timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
-  }
+  },
 );
 
 // Regular index for query performance (no uniqueness constraint)
@@ -276,7 +276,7 @@ applicationSchema.pre("save", function (next) {
 applicationSchema.methods.updateStatus = function (
   newStatus,
   performedBy,
-  note
+  note,
 ) {
   this.status = newStatus;
   this.timeline.push({
@@ -292,7 +292,7 @@ applicationSchema.methods.updateStatus = function (
 applicationSchema.methods.addNote = function (
   author,
   content,
-  isPrivate = true
+  isPrivate = true,
 ) {
   this.notes.push({
     author,
@@ -318,18 +318,18 @@ applicationSchema.methods.scheduleInterview = function (interviewData) {
 applicationSchema.statics.getByEmployer = function (employerId, filters = {}) {
   return this.find({ employer: employerId, ...filters })
     .populate("job", "title location jobType")
-    .populate("applicant", "firstName lastName email profile jobSeekerProfile -profile.avatar.data")
+    .populate("applicant", "firstName lastName email profile jobSeekerProfile")
     .sort({ createdAt: -1 });
 };
 
 // Static method to get applications by applicant
 applicationSchema.statics.getByApplicant = function (
   applicantId,
-  filters = {}
+  filters = {},
 ) {
   return this.find({ applicant: applicantId, ...filters })
     .populate("job", "title companyName location jobType salary")
-    .populate("employer", "firstName lastName employerProfile.companyName -profile.avatar.data")
+    .populate("employer", "firstName lastName employerProfile.companyName")
     .sort({ createdAt: -1 });
 };
 

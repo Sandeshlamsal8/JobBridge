@@ -27,7 +27,6 @@ function JobDetailsPage({ onNavigate, jobId }) {
     if (jobId) {
       fetchJobDetails();
       if (user?.userType === "jobseeker") {
-        checkExistingApplication();
         checkSavedStatus();
       }
     }
@@ -38,15 +37,34 @@ function JobDetailsPage({ onNavigate, jobId }) {
     setError(null);
 
     try {
+      const token = sessionStorage.getItem("jobbridge_token");
+      const headers = {};
+
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
       const response = await fetch(
         `${import.meta.env.VITE_API_URL}/jobs/${jobId}`,
+        { headers },
       );
 
       const data = await response.json();
 
       if (data.success) {
         setJob(data.data.job);
-        // View count is automatically incremented by the backend
+
+        // Set application status from the job details response
+        if (data.data.hasApplied) {
+          setHasApplied(true);
+          // Get more detailed application info
+          if (user?.userType === "jobseeker") {
+            await fetchApplicationDetails();
+          }
+        } else {
+          setHasApplied(false);
+          setExistingApplication(null);
+        }
       } else {
         setError(data.message || "Failed to load job details");
       }
@@ -58,13 +76,11 @@ function JobDetailsPage({ onNavigate, jobId }) {
     }
   };
 
-  const checkExistingApplication = async () => {
+  const fetchApplicationDetails = async () => {
     try {
       const token = sessionStorage.getItem("jobbridge_token");
       const response = await fetch(
-        `${
-          import.meta.env.VITE_API_URL
-        }/applications/my-applications?jobId=${jobId}`,
+        `${import.meta.env.VITE_API_URL}/applications/check/${jobId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -74,27 +90,12 @@ function JobDetailsPage({ onNavigate, jobId }) {
 
       const data = await response.json();
 
-      if (data.success && data.data.applications.length > 0) {
-        // Find the most recent non-withdrawn application
-        const activeApplication = data.data.applications.find(
-          (app) => app.status !== "withdrawn",
-        );
-
-        if (activeApplication) {
-          setHasApplied(true);
-          setExistingApplication(activeApplication);
-        } else {
-          setHasApplied(false);
-          setExistingApplication(null);
-        }
-      } else {
-        setHasApplied(false);
-        setExistingApplication(null);
+      if (data.success && data.data.hasApplied) {
+        setExistingApplication(data.data.application);
       }
     } catch (error) {
-      console.error("Error checking existing application:", error);
-      // Don't show error to user, just assume they haven't applied
-      setHasApplied(false);
+      console.error("Error fetching application details:", error);
+      // Don't fail the whole page if this fails
     }
   };
 
@@ -246,6 +247,8 @@ function JobDetailsPage({ onNavigate, jobId }) {
 
       if (data.success) {
         showSuccess("Application submitted successfully!");
+        // Refresh job details to update application status
+        await fetchJobDetails();
         setTimeout(() => {
           onNavigate("my-applications");
         }, 2000);
