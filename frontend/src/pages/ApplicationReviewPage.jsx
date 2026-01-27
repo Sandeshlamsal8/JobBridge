@@ -369,6 +369,246 @@ function ApplicationReviewPage({ onNavigate, applicationId }) {
           </div>
         </div>
 
+        {/* AI Ranking Section */}
+        {application.aiRanking && (
+          <div className="glass-card p-8 rounded-3xl mb-6 animate-fade-in border-2 border-primary-500/30">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-purple-500 rounded-xl flex items-center justify-center">
+                <svg
+                  className="w-6 h-6 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-slate-100">
+                  AI Candidate Analysis
+                </h2>
+                <p className="text-slate-400 text-sm">
+                  Powered by machine learning
+                </p>
+              </div>
+            </div>
+
+            {/* Overall Score */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              <div className="text-center p-6 bg-gradient-to-br from-primary-500/20 to-purple-500/20 rounded-2xl border border-primary-500/30">
+                <p className="text-slate-300 text-sm mb-2">
+                  Overall Match Score
+                </p>
+                <div className="text-6xl font-bold bg-gradient-to-r from-primary-400 to-purple-400 bg-clip-text text-transparent mb-2">
+                  {application.aiRanking.overallScore}
+                </div>
+                <div className="flex items-center justify-center gap-2">
+                  <span
+                    className={`px-4 py-1.5 rounded-full text-sm font-semibold ${
+                      application.aiRanking.tier === "excellent"
+                        ? "bg-green-500/20 text-green-400 border border-green-500/30"
+                        : application.aiRanking.tier === "good"
+                          ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
+                          : application.aiRanking.tier === "fair"
+                            ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
+                            : "bg-red-500/20 text-red-400 border border-red-500/30"
+                    }`}
+                  >
+                    {application.aiRanking.tier?.toUpperCase()}
+                  </span>
+                </div>
+              </div>
+
+              {/* Score Breakdown */}
+              <div className="space-y-3">
+                <div>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span className="text-slate-300">AI Semantic Match</span>
+                    <span className="text-primary-400 font-semibold">
+                      {application.aiRanking.breakdown?.semanticMatch}%
+                    </span>
+                  </div>
+                  <div className="h-2 bg-dark-800 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-primary-500 to-purple-500 transition-all duration-500"
+                      style={{
+                        width: `${application.aiRanking.breakdown?.semanticMatch}%`,
+                      }}
+                    ></div>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span className="text-slate-300">Skill Match</span>
+                    <span className="text-primary-400 font-semibold">
+                      {application.aiRanking.breakdown?.skillMatch}%
+                    </span>
+                  </div>
+                  <div className="h-2 bg-dark-800 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 transition-all duration-500"
+                      style={{
+                        width: `${application.aiRanking.breakdown?.skillMatch}%`,
+                      }}
+                    ></div>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span className="text-slate-300">Experience Match</span>
+                    <span className="text-primary-400 font-semibold">
+                      {application.aiRanking.breakdown?.experienceMatch}%
+                    </span>
+                  </div>
+                  <div className="h-2 bg-dark-800 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-green-500 to-emerald-500 transition-all duration-500"
+                      style={{
+                        width: `${application.aiRanking.breakdown?.experienceMatch}%`,
+                      }}
+                    ></div>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span className="text-slate-300">Education Match</span>
+                    <span className="text-primary-400 font-semibold">
+                      {application.aiRanking.breakdown?.educationMatch}%
+                    </span>
+                  </div>
+                  <div className="h-2 bg-dark-800 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-yellow-500 to-orange-500 transition-all duration-500"
+                      style={{
+                        width: `${application.aiRanking.breakdown?.educationMatch}%`,
+                      }}
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Skills Analysis */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              {/* Matched Skills */}
+              {application.aiRanking.matchedSkills &&
+                application.aiRanking.matchedSkills.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-100 mb-3 flex items-center gap-2">
+                      <svg
+                        className="w-5 h-5 text-green-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                      Matched Skills (
+                      {application.aiRanking.matchedSkills.length})
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {application.aiRanking.matchedSkills.map(
+                        (skill, index) => (
+                          <span
+                            key={index}
+                            className="px-3 py-1.5 bg-green-500/20 text-green-400 rounded-lg text-sm border border-green-500/30"
+                          >
+                            {skill}
+                          </span>
+                        ),
+                      )}
+                    </div>
+                  </div>
+                )}
+
+              {/* Missing Skills */}
+              {application.aiRanking.missingSkills &&
+                application.aiRanking.missingSkills.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-100 mb-3 flex items-center gap-2">
+                      <svg
+                        className="w-5 h-5 text-red-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                      Missing Skills (
+                      {application.aiRanking.missingSkills.length})
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {application.aiRanking.missingSkills.map(
+                        (skill, index) => (
+                          <span
+                            key={index}
+                            className="px-3 py-1.5 bg-red-500/20 text-red-400 rounded-lg text-sm border border-red-500/30"
+                          >
+                            {skill}
+                          </span>
+                        ),
+                      )}
+                    </div>
+                  </div>
+                )}
+            </div>
+
+            {/* AI Insights */}
+            {application.aiRanking.insights &&
+              application.aiRanking.insights.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-100 mb-3 flex items-center gap-2">
+                    <svg
+                      className="w-5 h-5 text-primary-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                      />
+                    </svg>
+                    AI Insights
+                  </h3>
+                  <div className="space-y-2">
+                    {application.aiRanking.insights.map((insight, index) => (
+                      <div
+                        key={index}
+                        className="flex items-start gap-3 p-3 bg-dark-800/50 rounded-lg border border-dark-700"
+                      >
+                        <span className="text-2xl">💡</span>
+                        <p className="text-slate-300 text-sm flex-1">
+                          {insight}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">

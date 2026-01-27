@@ -22,6 +22,7 @@ import ContactPage from "./pages/ContactPage";
 import CandidateProfilePage from "./pages/CandidateProfilePage";
 import CompanyProfilePage from "./pages/CompanyProfilePage";
 import ApplicationReviewPage from "./pages/ApplicationReviewPage";
+import CandidateRankingPage from "./pages/CandidateRankingPage";
 import JobDetailsPage from "./pages/JobDetailsPage";
 
 function AppContent() {
@@ -190,6 +191,16 @@ function AppContent() {
               onNavigate={handleNavigate}
               applicationId={applicationId}
             />
+          ) : (
+            <HomePage onNavigate={handleNavigate} />
+          );
+        }
+
+        // Dynamic Routes - Candidate Ranking
+        if (currentPage.startsWith("candidate-ranking/")) {
+          const jobId = currentPage.split("/")[1];
+          return isAuthenticated && user?.userType === "employer" ? (
+            <CandidateRankingPage onNavigate={handleNavigate} jobId={jobId} />
           ) : (
             <HomePage onNavigate={handleNavigate} />
           );

@@ -11,6 +11,7 @@ const {
   requireAnyUserType,
 } = require("../middleware/auth");
 const upload = require("../middleware/upload");
+const aiService = require("../ai-service");
 
 const router = express.Router();
 
@@ -118,6 +119,45 @@ router.post(
       });
 
       await application.save();
+
+      // Analyze CV automatically in the background
+      aiService
+        .processCVForApplication(req.file.buffer, req.file.mimetype)
+        .then((result) => {
+          if (result.success) {
+            application.cvAnalysis = {
+              skills: result.analysis.skills,
+              experience: result.analysis.experience,
+              education: result.analysis.education,
+              certifications: result.analysis.certifications,
+              rawText: result.text,
+              analyzedAt: new Date(),
+            };
+            return application.save();
+          }
+        })
+        .then(() => {
+          // Rank application against job
+          return aiService.rankApplicationForJob(application, job);
+        })
+        .then((rankResult) => {
+          if (rankResult.success) {
+            application.aiRanking = {
+              overallScore: rankResult.ranking.overallScore,
+              breakdown: rankResult.ranking.breakdown,
+              matchedSkills: rankResult.ranking.matchedSkills,
+              missingSkills: rankResult.ranking.missingSkills,
+              tier: rankResult.ranking.tier,
+              insights: rankResult.ranking.insights,
+              rankedAt: new Date(),
+            };
+            return application.save();
+          }
+        })
+        .catch((error) => {
+          console.error("Background CV analysis failed:", error);
+          // Don't fail the application if AI analysis fails
+        });
 
       // Increment job application count
       await job.incrementApplicationCount();

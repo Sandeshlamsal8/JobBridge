@@ -149,7 +149,7 @@ const jobSchema = new mongoose.Schema(
     timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
-  }
+  },
 );
 
 // Virtual for formatted salary
@@ -166,7 +166,7 @@ jobSchema.virtual("formattedSalary").get(function () {
 
   if (this.salary.min && this.salary.max) {
     return `${currency}${formatNumber(
-      this.salary.min
+      this.salary.min,
     )} - ${currency}${formatNumber(this.salary.max)}`;
   } else if (this.salary.min) {
     return `${currency}${formatNumber(this.salary.min)}+`;
@@ -246,25 +246,38 @@ jobSchema.statics.findActiveJobs = function (filters = {}) {
   return this.find({ status: "active", ...filters })
     .populate(
       "company",
-      "firstName lastName employerProfile.companyName employerProfile.companySize"
+      "firstName lastName employerProfile.companyName employerProfile.companySize",
     )
     .sort({ createdAt: -1 });
 };
 
 // Static method to search jobs
 jobSchema.statics.searchJobs = function (searchTerm, filters = {}) {
+  // Build the base search query with $or for text matching
   const searchQuery = {
     status: "active",
-    $text: { $search: searchTerm },
-    ...filters,
+    $or: [
+      { title: { $regex: searchTerm, $options: "i" } },
+      { description: { $regex: searchTerm, $options: "i" } },
+      { skills: { $regex: searchTerm, $options: "i" } },
+      { companyName: { $regex: searchTerm, $options: "i" } },
+    ],
   };
 
-  return this.find(searchQuery, { score: { $meta: "textScore" } })
+  // Apply additional filters (location, jobType, etc.)
+  // These are AND conditions with the search
+  Object.keys(filters).forEach((key) => {
+    if (filters[key] !== undefined && filters[key] !== null) {
+      searchQuery[key] = filters[key];
+    }
+  });
+
+  return this.find(searchQuery)
     .populate(
       "company",
-      "firstName lastName employerProfile.companyName employerProfile.companySize"
+      "firstName lastName employerProfile.companyName employerProfile.companySize",
     )
-    .sort({ score: { $meta: "textScore" }, createdAt: -1 });
+    .sort({ createdAt: -1 });
 };
 
 module.exports = mongoose.model("Job", jobSchema);

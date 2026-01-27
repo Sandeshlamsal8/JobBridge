@@ -47,6 +47,41 @@ const applicationSchema = new mongoose.Schema(
         default: Date.now,
       },
     },
+    cvAnalysis: {
+      skills: [String],
+      experience: Number,
+      education: [String],
+      certifications: [String],
+      rawText: String,
+      analyzedAt: {
+        type: Date,
+        default: Date.now,
+      },
+    },
+    aiRanking: {
+      overallScore: {
+        type: Number,
+        min: 0,
+        max: 100,
+      },
+      breakdown: {
+        semanticMatch: Number,
+        skillMatch: Number,
+        experienceMatch: Number,
+        educationMatch: Number,
+      },
+      matchedSkills: [String],
+      missingSkills: [String],
+      tier: {
+        type: String,
+        enum: ["excellent", "good", "fair", "poor"],
+      },
+      insights: [String],
+      rankedAt: {
+        type: Date,
+        default: Date.now,
+      },
+    },
     additionalDocuments: [
       {
         data: Buffer,

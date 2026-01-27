@@ -88,13 +88,35 @@ router.get(
       if (category) filters.category = category;
 
       let query;
+      let countFilters = { status: "active" };
 
       if (search) {
         // Text search
         query = Job.searchJobs(search, filters);
+        // For count, we need to build the same query structure
+        countFilters = {
+          status: "active",
+          $or: [
+            { title: { $regex: search, $options: "i" } },
+            { description: { $regex: search, $options: "i" } },
+            { skills: { $regex: search, $options: "i" } },
+            { companyName: { $regex: search, $options: "i" } },
+          ],
+        };
+        // Apply additional filters to count
+        Object.keys(filters).forEach((key) => {
+          if (
+            filters[key] !== undefined &&
+            filters[key] !== null &&
+            key !== "status"
+          ) {
+            countFilters[key] = filters[key];
+          }
+        });
       } else {
         // Regular filtering
         query = Job.findActiveJobs(filters);
+        countFilters = filters;
       }
 
       // Apply sorting
@@ -107,7 +129,7 @@ router.get(
       query = query.skip(skip).limit(parseInt(limit));
 
       const jobs = await query;
-      const total = await Job.countDocuments(filters);
+      const total = await Job.countDocuments(countFilters);
 
       res.json({
         success: true,

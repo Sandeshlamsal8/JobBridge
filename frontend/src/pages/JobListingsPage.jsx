@@ -265,7 +265,7 @@ function JobListingsPage({ onNavigate }) {
                   value={filters.location}
                   onChange={handleFilterChange}
                   className="input-field h-12 text-lg"
-                  placeholder="City, state, or remote"
+                  placeholder="City or state"
                 />
               </div>
               <div className="lg:col-span-3 flex items-end">

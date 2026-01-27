@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
+import { showToast } from "./ToastContainer";
 
 function JobApplicationModal({ job, isOpen, onClose, onSuccess }) {
   const { user } = useAuth();
@@ -109,28 +110,29 @@ function JobApplicationModal({ job, isOpen, onClose, onSuccess }) {
       if (formData.expectedSalary.amount) {
         submitData.append(
           "expectedSalary[amount]",
-          formData.expectedSalary.amount
+          formData.expectedSalary.amount,
         );
         submitData.append(
           "expectedSalary[period]",
-          formData.expectedSalary.period
+          formData.expectedSalary.period,
         );
       }
 
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/applications`,
+        `${import.meta.env.VITE_API_URL || "http://localhost:5000/api"}/applications`,
         {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            Authorization: `Bearer ${sessionStorage.getItem("jobbridge_token")}`,
           },
           body: submitData,
-        }
+        },
       );
 
       const data = await response.json();
 
-      if (data.success) {
+      if (response.ok && data.success) {
+        showToast("Application submitted successfully! 🎉", "success");
         onSuccess?.();
         onClose();
         // Reset form
@@ -140,10 +142,15 @@ function JobApplicationModal({ job, isOpen, onClose, onSuccess }) {
         });
         setResumeFile(null);
       } else {
-        setErrors({ submit: data.message || "Failed to submit application" });
+        const errorMessage = data.message || "Failed to submit application";
+        setErrors({ submit: errorMessage });
+        showToast(errorMessage, "error");
       }
     } catch (error) {
-      setErrors({ submit: "Network error. Please try again." });
+      console.error("Application submission error:", error);
+      const errorMessage = "Network error. Please try again.";
+      setErrors({ submit: errorMessage });
+      showToast(errorMessage, "error");
     } finally {
       setLoading(false);
     }

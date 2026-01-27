@@ -95,7 +95,7 @@ const notificationSchema = new mongoose.Schema(
     timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
-  }
+  },
 );
 
 // Indexes for better query performance
@@ -139,8 +139,11 @@ notificationSchema.statics.createNotification = async function (data) {
 
   // Populate sender and recipient for real-time notifications
   await notification.populate([
-    { path: "sender", select: "firstName lastName profile.avatar -profile.avatar.data" },
-    { path: "recipient", select: "firstName lastName notificationSettings" },
+    { path: "sender", select: "firstName lastName email" },
+    {
+      path: "recipient",
+      select: "firstName lastName email notificationSettings",
+    },
   ]);
 
   return notification;
@@ -149,7 +152,7 @@ notificationSchema.statics.createNotification = async function (data) {
 // Static method to get user notifications
 notificationSchema.statics.getUserNotifications = function (
   userId,
-  options = {}
+  options = {},
 ) {
   const {
     status = null,
@@ -166,7 +169,7 @@ notificationSchema.statics.getUserNotifications = function (
   if (!includeArchived) query.status = { $ne: "archived" };
 
   return this.find(query)
-    .populate("sender", "firstName lastName profile.avatar -profile.avatar.data")
+    .populate("sender", "firstName lastName email")
     .populate("data.jobId", "title companyName")
     .populate("data.applicationId", "status")
     .sort({ createdAt: -1 })
@@ -186,7 +189,7 @@ notificationSchema.statics.getUnreadCount = function (userId) {
 notificationSchema.statics.markAllAsRead = function (userId) {
   return this.updateMany(
     { recipient: userId, status: "unread" },
-    { status: "read", readAt: new Date() }
+    { status: "read", readAt: new Date() },
   );
 };
 

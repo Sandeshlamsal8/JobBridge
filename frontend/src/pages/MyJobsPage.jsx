@@ -26,7 +26,7 @@ function MyJobsPage({ onNavigate }) {
       showToast(
         "Please complete your company profile to manage jobs",
         "warning",
-        5000
+        5000,
       );
       onNavigate("employer-dashboard");
       return;
@@ -87,7 +87,7 @@ function MyJobsPage({ onNavigate }) {
   const handleCloseJob = async (jobId) => {
     if (
       !confirm(
-        "Are you sure you want to close this job listing? This will stop accepting new applications."
+        "Are you sure you want to close this job listing? This will stop accepting new applications.",
       )
     ) {
       return;
@@ -104,7 +104,7 @@ function MyJobsPage({ onNavigate }) {
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({ status: "closed" }),
-        }
+        },
       );
 
       const data = await response.json();
@@ -250,7 +250,7 @@ function MyJobsPage({ onNavigate }) {
                         </div>
                         <span
                           className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(
-                            job.status
+                            job.status,
                           )}`}
                         >
                           {job.status}
@@ -305,6 +305,27 @@ function MyJobsPage({ onNavigate }) {
                       </div>
 
                       <div className="flex flex-wrap gap-3">
+                        <button
+                          onClick={() =>
+                            onNavigate(`candidate-ranking/${job._id}`)
+                          }
+                          className="btn-primary px-4 py-2 text-sm flex items-center gap-2 bg-gradient-to-r from-primary-500 to-purple-500 hover:from-primary-600 hover:to-purple-600"
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                            />
+                          </svg>
+                          🤖 AI Rankings
+                        </button>
                         <button
                           onClick={() => onNavigate(`edit-job/${job._id}`)}
                           className="btn-secondary px-4 py-2 text-sm flex items-center gap-2"
