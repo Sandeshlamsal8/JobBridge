@@ -251,7 +251,7 @@ jobSchema.statics.findActiveJobs = function (filters = {}) {
     .sort({ createdAt: -1 });
 };
 
-// Static method to search jobs
+// Static method to search jobs with title prioritization
 jobSchema.statics.searchJobs = function (searchTerm, filters = {}) {
   // Build the base search query with $or for text matching
   const searchQuery = {
@@ -265,19 +265,51 @@ jobSchema.statics.searchJobs = function (searchTerm, filters = {}) {
   };
 
   // Apply additional filters (location, jobType, etc.)
-  // These are AND conditions with the search
   Object.keys(filters).forEach((key) => {
     if (filters[key] !== undefined && filters[key] !== null) {
       searchQuery[key] = filters[key];
     }
   });
 
-  return this.find(searchQuery)
-    .populate(
-      "company",
-      "firstName lastName employerProfile.companyName employerProfile.companySize",
-    )
-    .sort({ createdAt: -1 });
+  // Use aggregation to prioritize title matches
+  const pipeline = [
+    { $match: searchQuery },
+    {
+      $addFields: {
+        titleMatch: {
+          $cond: [
+            {
+              $regexMatch: { input: "$title", regex: searchTerm, options: "i" },
+            },
+            1,
+            0,
+          ],
+        },
+      },
+    },
+    { $sort: { titleMatch: -1, createdAt: -1 } },
+    {
+      $lookup: {
+        from: "users",
+        localField: "company",
+        foreignField: "_id",
+        as: "company",
+      },
+    },
+    { $unwind: { path: "$company", preserveNullAndEmptyArrays: true } },
+    {
+      $project: {
+        titleMatch: 0,
+        "company.password": 0,
+        "company.emailVerificationToken": 0,
+        "company.emailVerificationExpires": 0,
+        "company.passwordResetToken": 0,
+        "company.passwordResetExpires": 0,
+      },
+    },
+  ];
+
+  return this.aggregate(pipeline);
 };
 
 module.exports = mongoose.model("Job", jobSchema);
