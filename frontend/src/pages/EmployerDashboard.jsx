@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { showToast } from "../components/ToastContainer";
 import { isCompanyProfileComplete } from "../utils/companyProfile";
@@ -6,8 +7,9 @@ import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 import CompanySetupModal from "../components/CompanySetupModal";
 
-function EmployerDashboard({ onNavigate }) {
+function EmployerDashboard() {
   const { user, logout, updateUser } = useAuth();
+  const navigate = useNavigate();
   const [stats, setStats] = useState({
     activeJobs: 0,
     totalApplications: 0,
@@ -223,12 +225,12 @@ function EmployerDashboard({ onNavigate }) {
 
   const handleLogout = async () => {
     await logout();
-    onNavigate("home");
+    navigate("/");
   };
 
   return (
     <div className="min-h-screen bg-dark-950 text-slate-100">
-      <Header onNavigate={onNavigate} user={user} onLogout={handleLogout} />
+      <Header user={user} onLogout={handleLogout} />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-24">
         {/* Welcome Header */}
@@ -245,7 +247,7 @@ function EmployerDashboard({ onNavigate }) {
             </div>
             <div className="flex gap-3">
               <button
-                onClick={() => onNavigate("post-job")}
+                onClick={() => navigate("/employer/post-job")}
                 className="btn-primary px-6 py-3 flex items-center gap-2"
               >
                 <svg
@@ -264,7 +266,7 @@ function EmployerDashboard({ onNavigate }) {
                 Post New Job
               </button>
               <button
-                onClick={() => onNavigate("my-jobs")}
+                onClick={() => navigate("/employer/my-jobs")}
                 className="btn-secondary px-6 py-3 flex items-center gap-2"
               >
                 <svg
@@ -496,7 +498,7 @@ function EmployerDashboard({ onNavigate }) {
                       Recent Job Postings
                     </h2>
                     <button
-                      onClick={() => onNavigate("my-jobs")}
+                      onClick={() => navigate("/employer/my-jobs")}
                       className="text-primary-400 hover:text-primary-300 transition-colors text-sm font-semibold"
                     >
                       View All
@@ -537,7 +539,7 @@ function EmployerDashboard({ onNavigate }) {
                           </div>
                           <div className="flex gap-3">
                             <button
-                              onClick={() => onNavigate(`edit-job/${job._id}`)}
+                              onClick={() => navigate(`/employer/edit-job/${job._id}`)}
                               className="btn-secondary text-sm px-4 py-2 flex-1 flex items-center justify-center gap-2"
                             >
                               <svg
@@ -556,7 +558,7 @@ function EmployerDashboard({ onNavigate }) {
                               Edit
                             </button>
                             <button
-                              onClick={() => onNavigate("applications")}
+                              onClick={() => navigate("/employer/applications")}
                               className="btn-primary text-sm px-4 py-2 flex-1 flex items-center justify-center gap-2"
                             >
                               <svg
@@ -596,7 +598,7 @@ function EmployerDashboard({ onNavigate }) {
                           No job postings yet
                         </p>
                         <button
-                          onClick={() => onNavigate("post-job")}
+                          onClick={() => navigate("/employer/post-job")}
                           className="btn-primary px-6 py-2"
                         >
                           Post Your First Job
@@ -616,7 +618,7 @@ function EmployerDashboard({ onNavigate }) {
                       Recent Applications
                     </h2>
                     <button
-                      onClick={() => onNavigate("applications")}
+                      onClick={() => navigate("/employer/applications")}
                       className="text-primary-400 hover:text-primary-300 transition-colors text-sm font-semibold"
                     >
                       View All
@@ -666,7 +668,7 @@ function EmployerDashboard({ onNavigate }) {
                           </div>
                           <div className="flex gap-2">
                             <button
-                              onClick={() => onNavigate("applications")}
+                              onClick={() => navigate("/employer/applications")}
                               className="btn-primary text-xs px-3 py-1 w-full"
                             >
                               View Details
@@ -700,7 +702,7 @@ function EmployerDashboard({ onNavigate }) {
         )}
       </div>
 
-      <Footer user={user} onNavigate={onNavigate} />
+      <Footer user={user} />
 
       {/* Company Setup Modal */}
       <CompanySetupModal

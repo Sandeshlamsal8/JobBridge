@@ -1,13 +1,13 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import LegalModal from "../LegalModal";
 
-function Footer({ user, onNavigate }) {
+function Footer({ user }) {
+  const navigate = useNavigate();
   const [legalModal, setLegalModal] = useState({ isOpen: false, type: null });
 
   const handleContactClick = () => {
-    if (onNavigate) {
-      onNavigate("contact");
-    }
+    navigate("/contact");
   };
 
   // Minimized footer for authenticated users

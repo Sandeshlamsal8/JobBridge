@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../hooks/useToast";
 import Header from "../components/layout/Header";
@@ -7,8 +8,10 @@ import LocationAutocomplete from "../components/LocationAutocomplete";
 import Toast from "../components/ui/Toast";
 import { useJobCategories } from "../hooks/useJobCategories";
 
-function EditJobPage({ onNavigate, jobId }) {
+function EditJobPage() {
+  const { jobId } = useParams();
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const { categories, isLoading: categoriesLoading, error: categoriesError } = useJobCategories();
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingJob, setIsLoadingJob] = useState(true);
@@ -201,7 +204,7 @@ function EditJobPage({ onNavigate, jobId }) {
       if (data.success) {
         showSuccess("Job updated successfully!");
         setTimeout(() => {
-          onNavigate("my-jobs");
+          navigate("/employer/my-jobs");
         }, 2000);
       } else {
         showError(data.message || "Failed to update job");
@@ -243,7 +246,7 @@ function EditJobPage({ onNavigate, jobId }) {
       if (data.success) {
         showSuccess("Job listing closed successfully!");
         setTimeout(() => {
-          onNavigate("my-jobs");
+          navigate("/employer/my-jobs");
         }, 2000);
       } else {
         showError(data.message || "Failed to close job");
@@ -258,13 +261,13 @@ function EditJobPage({ onNavigate, jobId }) {
 
   const handleLogout = async () => {
     await logout();
-    onNavigate("home");
+    navigate("/");
   };
 
   if (isLoadingJob) {
     return (
       <div className="min-h-screen bg-dark-950 text-slate-100">
-        <Header onNavigate={onNavigate} user={user} onLogout={handleLogout} />
+        <Header user={user} onLogout={handleLogout} />
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-24">
           <div className="flex items-center justify-center py-20">
             <div className="text-center">
@@ -298,7 +301,7 @@ function EditJobPage({ onNavigate, jobId }) {
   if (error && !formData.title) {
     return (
       <div className="min-h-screen bg-dark-950 text-slate-100">
-        <Header onNavigate={onNavigate} user={user} onLogout={handleLogout} />
+        <Header user={user} onLogout={handleLogout} />
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-24">
           <div className="glass-card p-8 rounded-xl text-center">
             <svg
@@ -318,7 +321,7 @@ function EditJobPage({ onNavigate, jobId }) {
               {error || "Job not found"}
             </h2>
             <button
-              onClick={() => onNavigate("my-jobs")}
+              onClick={() => navigate("/employer/my-jobs")}
               className="btn-primary px-6 py-3 mt-4"
             >
               Back to My Jobs
@@ -331,12 +334,12 @@ function EditJobPage({ onNavigate, jobId }) {
 
   return (
     <div className="min-h-screen bg-dark-950 text-slate-100">
-      <Header onNavigate={onNavigate} user={user} onLogout={handleLogout} />
+      <Header user={user} onLogout={handleLogout} />
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-24">
         <div className="mb-8 animate-fade-in">
           <button
-            onClick={() => onNavigate("my-jobs")}
+            onClick={() => navigate("/employer/my-jobs")}
             className="flex items-center gap-2 text-primary-400 hover:text-primary-300 transition-colors mb-4"
           >
             <svg
@@ -941,7 +944,7 @@ function EditJobPage({ onNavigate, jobId }) {
               <div className="flex gap-3">
                 <button
                   type="button"
-                  onClick={() => onNavigate("my-jobs")}
+                  onClick={() => navigate("/employer/my-jobs")}
                   className="btn-secondary px-6 py-3 font-semibold"
                   disabled={isLoading}
                 >
@@ -1000,7 +1003,7 @@ function EditJobPage({ onNavigate, jobId }) {
         </form>
       </div>
 
-      <Footer user={user} onNavigate={onNavigate} />
+      <Footer user={user} />
 
       {/* Toast Notification */}
       <Toast

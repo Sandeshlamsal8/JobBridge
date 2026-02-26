@@ -1,9 +1,11 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { showToast } from "../components/ToastContainer";
 
-function LoginPage({ onNavigate }) {
+function LoginPage() {
   const { login, isLoading, error, clearError } = useAuth();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -26,8 +28,15 @@ function LoginPage({ onNavigate }) {
 
     if (result.success) {
       showToast("Welcome back! Login successful", "success");
-      // Redirect to home page on successful login
-      onNavigate("home");
+      // Redirect based on user type
+      const userType = result.data.user.userType;
+      if (userType === "employer") {
+        navigate("/employer/dashboard");
+      } else if (userType === "jobseeker") {
+        navigate("/jobseeker/dashboard");
+      } else {
+        navigate("/");
+      }
     }
     // Error handling is managed by the AuthContext
   };
@@ -43,7 +52,7 @@ function LoginPage({ onNavigate }) {
         {/* Header */}
         <div className="text-center">
           <button
-            onClick={() => onNavigate && onNavigate("home")}
+            onClick={() => navigate("/")}
             className="text-3xl lg:text-4xl font-bold gradient-text mb-4 hover:scale-105 transition-transform duration-300"
           >
             JobBridge
@@ -169,7 +178,7 @@ function LoginPage({ onNavigate }) {
               <div className="text-sm">
                 <button
                   type="button"
-                  onClick={() => onNavigate && onNavigate("forgot-password")}
+                  onClick={() => navigate("/forgot-password")}
                   className="text-primary-400 hover:text-primary-300 transition-colors font-semibold"
                   disabled={isLoading}
                 >
@@ -218,7 +227,7 @@ function LoginPage({ onNavigate }) {
           <p className="text-slate-300 text-lg">
             Don't have an account?{" "}
             <button
-              onClick={() => onNavigate && onNavigate("signup")}
+              onClick={() => navigate("/signup")}
               className="text-primary-400 hover:text-primary-300 transition-colors font-semibold hover:underline"
               disabled={isLoading}
             >

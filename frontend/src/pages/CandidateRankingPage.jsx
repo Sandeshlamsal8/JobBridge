@@ -1,11 +1,14 @@
 import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 import { showToast } from "../components/ToastContainer";
 
-function CandidateRankingPage({ onNavigate, jobId }) {
+function CandidateRankingPage() {
+  const { jobId } = useParams();
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [ranking, setRanking] = useState(false);
   const [job, setJob] = useState(null);
@@ -190,13 +193,13 @@ function CandidateRankingPage({ onNavigate, jobId }) {
 
   const handleLogout = async () => {
     await logout();
-    onNavigate("home");
+    navigate("/");
   };
 
   if (loading) {
     return (
       <div className="min-h-screen bg-dark-950 text-slate-100">
-        <Header onNavigate={onNavigate} user={user} onLogout={handleLogout} />
+        <Header user={user} onLogout={handleLogout} />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-24">
           <div className="flex flex-col items-center justify-center py-20">
             <div className="relative">
@@ -231,12 +234,12 @@ function CandidateRankingPage({ onNavigate, jobId }) {
 
   return (
     <div className="min-h-screen bg-dark-950 text-slate-100">
-      <Header onNavigate={onNavigate} user={user} onLogout={handleLogout} />
+      <Header user={user} onLogout={handleLogout} />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-24">
         {/* Back Button */}
         <button
-          onClick={() => onNavigate("my-jobs")}
+          onClick={() => navigate("/employer/my-jobs")}
           className="text-slate-400 hover:text-primary-400 mb-6 flex items-center gap-2 transition-colors"
         >
           <svg
@@ -569,7 +572,7 @@ function CandidateRankingPage({ onNavigate, jobId }) {
                       <div className="flex gap-2">
                         <button
                           onClick={() =>
-                            onNavigate(
+                            navigate(
                               `application-review/${candidate.applicationId}`,
                             )
                           }
@@ -743,7 +746,7 @@ function CandidateRankingPage({ onNavigate, jobId }) {
         )}
       </div>
 
-      <Footer user={user} onNavigate={onNavigate} />
+      <Footer user={user} />
     </div>
   );
 }

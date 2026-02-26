@@ -1,12 +1,15 @@
 import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 import Toast from "../components/ui/Toast";
 import { useToast } from "../hooks/useToast";
 
-function ApplicationReviewPage({ onNavigate, applicationId }) {
+function ApplicationReviewPage() {
+  const { applicationId } = useParams();
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [application, setApplication] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -213,13 +216,13 @@ function ApplicationReviewPage({ onNavigate, applicationId }) {
 
   const handleLogout = async () => {
     await logout();
-    onNavigate("home");
+    navigate("/");
   };
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-dark-950 text-slate-100">
-        <Header onNavigate={onNavigate} user={user} onLogout={handleLogout} />
+        <Header user={user} onLogout={handleLogout} />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-24">
           <div className="flex items-center justify-center py-20">
             <div className="text-center">
@@ -253,7 +256,7 @@ function ApplicationReviewPage({ onNavigate, applicationId }) {
   if (error || !application) {
     return (
       <div className="min-h-screen bg-dark-950 text-slate-100">
-        <Header onNavigate={onNavigate} user={user} onLogout={handleLogout} />
+        <Header user={user} onLogout={handleLogout} />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-24">
           <div className="glass-card p-8 rounded-xl text-center">
             <svg
@@ -273,7 +276,7 @@ function ApplicationReviewPage({ onNavigate, applicationId }) {
               {error || "Application not found"}
             </h2>
             <button
-              onClick={() => onNavigate("applications")}
+              onClick={() => navigate("/employer/applications")}
               className="btn-primary px-6 py-3 mt-4"
             >
               Back to Applications
@@ -289,12 +292,12 @@ function ApplicationReviewPage({ onNavigate, applicationId }) {
 
   return (
     <div className="min-h-screen bg-dark-950 text-slate-100">
-      <Header onNavigate={onNavigate} user={user} onLogout={handleLogout} />
+      <Header user={user} onLogout={handleLogout} />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-24">
         {/* Back Button */}
         <button
-          onClick={() => onNavigate("applications")}
+          onClick={() => navigate("/employer/applications")}
           className="text-slate-400 hover:text-primary-400 mb-6 flex items-center gap-2"
         >
           <svg
@@ -360,7 +363,7 @@ function ApplicationReviewPage({ onNavigate, applicationId }) {
                 {formatStatus(application.status)}
               </span>
               <button
-                onClick={() => onNavigate(`candidate-profile/${candidate._id}`)}
+                onClick={() => navigate(`/employer/candidate-profile/${candidate._id}`)}
                 className="btn-secondary px-4 py-2 text-sm"
               >
                 View Full Profile
@@ -384,7 +387,7 @@ function ApplicationReviewPage({ onNavigate, applicationId }) {
                     );
                     const data = await response.json();
                     if (data.success) {
-                      onNavigate(`messages/${data.data.conversation._id}`);
+                      navigate(`/messages/${data.data.conversation._id}`);
                     } else {
                       showError(
                         data.message || "Failed to create conversation",
@@ -1143,7 +1146,7 @@ function ApplicationReviewPage({ onNavigate, applicationId }) {
         </div>
       </div>
 
-      <Footer user={user} onNavigate={onNavigate} />
+      <Footer user={user} />
 
       {/* Toast Notification */}
       <Toast

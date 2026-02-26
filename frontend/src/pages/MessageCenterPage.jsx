@@ -1,12 +1,15 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 import { useToast } from "../hooks/useToast";
 import Toast from "../components/ui/Toast";
 
-function MessageCenterPage({ onNavigate, conversationId }) {
+function MessageCenterPage() {
+  const { conversationId } = useParams();
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [conversations, setConversations] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
@@ -250,14 +253,13 @@ function MessageCenterPage({ onNavigate, conversationId }) {
 
   const handleLogout = async () => {
     await logout();
-    onNavigate("home");
+    navigate("/");
   };
 
   return (
     <div className="min-h-screen bg-dark-950 flex flex-col">
       <Header
         user={user}
-        onNavigate={onNavigate}
         onLogout={handleLogout}
         currentPage="messages"
       />
@@ -320,7 +322,7 @@ function MessageCenterPage({ onNavigate, conversationId }) {
                           }`}
                           onClick={() => {
                             setSelectedConversation(conversation);
-                            onNavigate(`messages/${conversation._id}`);
+                            navigate(`/messages/${conversation._id}`);
                           }}
                         >
                           <div className="flex items-start justify-between">
@@ -552,7 +554,7 @@ function MessageCenterPage({ onNavigate, conversationId }) {
         </div>
       </main>
 
-      <Footer onNavigate={onNavigate} />
+      <Footer />
 
       {toast.show && (
         <Toast message={toast.message} type={toast.type} onClose={hideToast} />

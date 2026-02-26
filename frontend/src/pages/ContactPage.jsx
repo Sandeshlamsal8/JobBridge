@@ -2,17 +2,18 @@ import { useAuth } from "../contexts/AuthContext";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 
-function ContactPage({ onNavigate }) {
+function ContactPage() {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   const handleLogout = async () => {
     await logout();
-    onNavigate("home");
+    navigate("/");
   };
 
   return (
     <div className="min-h-screen bg-dark-950 text-slate-100">
-      <Header onNavigate={onNavigate} user={user} onLogout={handleLogout} />
+      <Header user={user} onLogout={handleLogout} />
 
       <div className="pt-20 pb-16">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -131,7 +132,7 @@ function ContactPage({ onNavigate }) {
         </div>
       </div>
 
-      <Footer user={user} onNavigate={onNavigate} />
+      <Footer user={user} />
     </div>
   );
 }

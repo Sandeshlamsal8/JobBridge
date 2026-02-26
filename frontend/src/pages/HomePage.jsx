@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
@@ -204,7 +205,9 @@ function Features() {
 }
 
 // CTA Section Component
-function CTA({ onNavigate }) {
+function CTA() {
+  const navigate = useNavigate();
+
   return (
     <section
       id="contact"
@@ -225,7 +228,7 @@ function CTA({ onNavigate }) {
 
         <div className="flex flex-col sm:flex-row gap-4 lg:gap-6 justify-center items-center max-w-md mx-auto">
           <button
-            onClick={() => onNavigate("contact")}
+            onClick={() => navigate("/contact")}
             className="btn-primary text-lg px-8 py-4 w-full sm:w-auto flex items-center justify-center gap-2"
           >
             <svg
@@ -244,7 +247,7 @@ function CTA({ onNavigate }) {
             Contact Us
           </button>
           <button
-            onClick={() => onNavigate("signup")}
+            onClick={() => navigate("/signup")}
             className="btn-secondary text-lg px-8 py-4 w-full sm:w-auto flex items-center justify-center gap-2"
           >
             <svg
@@ -268,21 +271,22 @@ function CTA({ onNavigate }) {
   );
 }
 
-function HomePage({ onNavigate }) {
+function HomePage() {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   const handleLogout = async () => {
     await logout();
-    onNavigate("home");
+    navigate("/");
   };
 
   return (
     <div className="min-h-screen bg-dark-950 text-slate-100">
-      <Header onNavigate={onNavigate} user={user} onLogout={handleLogout} />
+      <Header user={user} onLogout={handleLogout} />
       <Hero />
       <Features />
-      <CTA onNavigate={onNavigate} />
-      <Footer user={user} onNavigate={onNavigate} />
+      <CTA />
+      <Footer user={user} />
     </div>
   );
 }

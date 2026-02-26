@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { showToast } from "../components/ToastContainer";
 import Header from "../components/layout/Header";
@@ -7,8 +8,9 @@ import LocationAutocomplete from "../components/LocationAutocomplete";
 import SearchableCategories from "../components/SearchableCategories";
 import { useProfileCompletion } from "../hooks/useProfileCompletion";
 
-function ProfileSettings({ onNavigate }) {
+function ProfileSettings() {
   const { user, logout, updateUser } = useAuth();
+  const navigate = useNavigate();
   const { completionData, refreshCompletion } = useProfileCompletion();
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("basic");
@@ -409,7 +411,7 @@ function ProfileSettings({ onNavigate }) {
 
   const handleLogout = async () => {
     await logout();
-    onNavigate("home");
+    navigate("/");
   };
 
   // Profile picture functions
@@ -503,7 +505,7 @@ function ProfileSettings({ onNavigate }) {
 
   return (
     <div className="min-h-screen bg-dark-950 text-slate-100">
-      <Header onNavigate={onNavigate} user={user} onLogout={handleLogout} />
+      <Header user={user} onLogout={handleLogout} />
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-24">
         {/* Header */}
@@ -511,7 +513,7 @@ function ProfileSettings({ onNavigate }) {
           <div className="flex items-center gap-4 mb-4">
             <button
               onClick={() =>
-                onNavigate(
+                navigate(
                   user?.userType === "employer"
                     ? "employer-dashboard"
                     : "jobseeker-dashboard"
@@ -1649,7 +1651,7 @@ function ProfileSettings({ onNavigate }) {
         </div>
       )}
 
-      <Footer user={user} onNavigate={onNavigate} />
+      <Footer user={user} />
     </div>
   );
 }

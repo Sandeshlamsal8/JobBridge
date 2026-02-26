@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { showToast } from "./ToastContainer";
 
-function NotificationCenter({ isOpen, onClose, onNavigate }) {
+function NotificationCenter({ isOpen, onClose }) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -163,11 +165,30 @@ function NotificationCenter({ isOpen, onClose, onNavigate }) {
       markAsRead(notification._id);
     }
 
-    if (notification.actionUrl && onNavigate) {
+    if (notification.actionUrl) {
       // Close the notification panel
       onClose();
-      // Navigate using the app's navigation function
-      onNavigate(notification.actionUrl);
+      // Navigate using React Router
+      // Map old-style URLs to new routes
+      const routeMap = {
+        "job-details/": "/job-details/",
+        "application-review/": "/employer/application-review/",
+        "candidate-profile/": "/employer/candidate-profile/",
+        "messages/": "/messages/",
+        "my-applications": "/jobseeker/my-applications",
+        "employer-dashboard": "/employer/dashboard",
+        "jobseeker-dashboard": "/jobseeker/dashboard",
+      };
+
+      let targetRoute = notification.actionUrl;
+      for (const [oldPath, newPath] of Object.entries(routeMap)) {
+        if (targetRoute.startsWith(oldPath)) {
+          targetRoute = targetRoute.replace(oldPath, newPath);
+          break;
+        }
+      }
+
+      navigate(targetRoute);
     }
   };
 

@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 
-function SavedJobsPage({ onNavigate }) {
+function SavedJobsPage() {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [savedJobs, setSavedJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -128,7 +130,7 @@ function SavedJobsPage({ onNavigate }) {
 
   const handleLogout = async () => {
     await logout();
-    onNavigate("home");
+    navigate("/");
   };
 
   const getPriorityColor = (priority) => {
@@ -151,14 +153,14 @@ function SavedJobsPage({ onNavigate }) {
 
   return (
     <div className="min-h-screen bg-dark-950 text-slate-100">
-      <Header onNavigate={onNavigate} user={user} onLogout={handleLogout} />
+      <Header user={user} onLogout={handleLogout} />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-24">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-4">
             <button
-              onClick={() => onNavigate("jobseeker-dashboard")}
+              onClick={() => navigate("/jobseeker/dashboard")}
               className="p-2 text-slate-400 hover:text-slate-200 transition-colors"
             >
               <svg
@@ -384,7 +386,7 @@ function SavedJobsPage({ onNavigate }) {
                   <div className="flex gap-2">
                     <button
                       onClick={() =>
-                        onNavigate(`job-details/${savedJob.job._id}`)
+                        navigate(`/job-details/${savedJob.job._id}`)
                       }
                       className="btn-secondary text-sm px-4 py-2"
                     >
@@ -468,7 +470,7 @@ function SavedJobsPage({ onNavigate }) {
             </p>
             {filter === "saved" && (
               <button
-                onClick={() => onNavigate("job-listings")}
+                onClick={() => navigate("/job-listings")}
                 className="btn-primary px-6 py-3"
               >
                 Browse Jobs
@@ -478,7 +480,7 @@ function SavedJobsPage({ onNavigate }) {
         )}
       </div>
 
-      <Footer user={user} onNavigate={onNavigate} />
+      <Footer user={user} />
     </div>
   );
 }

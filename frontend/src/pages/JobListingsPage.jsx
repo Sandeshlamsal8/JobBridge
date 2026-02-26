@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 import JobApplicationModal from "../components/JobApplicationModal";
 import { useJobCategories } from "../hooks/useJobCategories";
 
-function JobListingsPage({ onNavigate }) {
+function JobListingsPage() {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const { categories } = useJobCategories(true); // includeAll = true for "All Categories" option
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -138,7 +140,7 @@ function JobListingsPage({ onNavigate }) {
 
   const handleLogout = async () => {
     await logout();
-    onNavigate("home");
+    navigate("/");
   };
 
   const handleApplyClick = (job) => {
@@ -224,7 +226,7 @@ function JobListingsPage({ onNavigate }) {
 
   return (
     <div className="min-h-screen bg-dark-950 text-slate-100">
-      <Header onNavigate={onNavigate} user={user} onLogout={handleLogout} />
+      <Header user={user} onLogout={handleLogout} />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-24">
         {/* Page Header */}
@@ -421,9 +423,8 @@ function JobListingsPage({ onNavigate }) {
                     {user?.userType === "jobseeker" && job.company?._id ? (
                       <button
                         onClick={() =>
-                          onNavigate(`company-profile/${job.company._id}`, {
-                            referrer: "job-listings",
-                          })
+                          navigate(`/jobseeker/company-profile/${job.company._id}`, { state: { referrer: "job-listings",
+                           } })
                         }
                         className="text-primary-400 font-semibold mb-2 hover:text-primary-300 transition-colors underline text-left"
                       >
@@ -538,7 +539,7 @@ function JobListingsPage({ onNavigate }) {
                   </div>
                   <div className="flex gap-3">
                     <button
-                      onClick={() => onNavigate(`job-details/${job._id}`)}
+                      onClick={() => navigate(`/job-details/${job._id}`)}
                       className="btn-secondary text-sm px-4 py-2"
                     >
                       View Details
@@ -624,7 +625,7 @@ function JobListingsPage({ onNavigate }) {
         )}
       </div>
 
-      <Footer user={user} onNavigate={onNavigate} />
+      <Footer user={user} />
 
       {/* Job Application Modal */}
       <JobApplicationModal

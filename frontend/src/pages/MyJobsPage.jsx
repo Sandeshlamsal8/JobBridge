@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { showToast } from "../components/ToastContainer";
 import { isCompanyProfileComplete } from "../utils/companyProfile";
@@ -8,8 +9,9 @@ import Footer from "../components/layout/Footer";
 import Toast from "../components/ui/Toast";
 import { useToast } from "../hooks/useToast";
 
-function MyJobsPage({ onNavigate }) {
+function MyJobsPage() {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [jobs, setJobs] = useState([]);
   const { toast, showInfo, hideToast } = useToast();
@@ -28,10 +30,10 @@ function MyJobsPage({ onNavigate }) {
         "warning",
         5000,
       );
-      onNavigate("employer-dashboard");
+      navigate("/employer/dashboard");
       return;
     }
-  }, [user, onNavigate]);
+  }, [user, navigate]);
 
   useEffect(() => {
     fetchJobs();
@@ -81,7 +83,7 @@ function MyJobsPage({ onNavigate }) {
 
   const handleLogout = async () => {
     await logout();
-    onNavigate("home");
+    navigate("/");
   };
 
   const handleCloseJob = async (jobId) => {
@@ -123,12 +125,12 @@ function MyJobsPage({ onNavigate }) {
 
   return (
     <div className="min-h-screen bg-dark-950 text-slate-100">
-      <Header onNavigate={onNavigate} user={user} onLogout={handleLogout} />
+      <Header user={user} onLogout={handleLogout} />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-24">
         <div className="mb-8">
           <button
-            onClick={() => onNavigate("employer-dashboard")}
+            onClick={() => navigate("/employer/dashboard")}
             className="text-slate-400 hover:text-primary-400 mb-4 flex items-center gap-2"
           >
             <svg
@@ -156,7 +158,7 @@ function MyJobsPage({ onNavigate }) {
               </p>
             </div>
             <button
-              onClick={() => onNavigate("post-job")}
+              onClick={() => navigate("/employer/post-job")}
               className="btn-primary px-6 py-3 flex items-center gap-2"
             >
               <svg
@@ -307,7 +309,7 @@ function MyJobsPage({ onNavigate }) {
                       <div className="flex flex-wrap gap-3">
                         <button
                           onClick={() =>
-                            onNavigate(`candidate-ranking/${job._id}`)
+                            navigate(`/employer/candidate-ranking/${job._id}`)
                           }
                           className="btn-primary px-4 py-2 text-sm flex items-center gap-2 bg-gradient-to-r from-primary-500 to-purple-500 hover:from-primary-600 hover:to-purple-600"
                         >
@@ -327,7 +329,9 @@ function MyJobsPage({ onNavigate }) {
                           🤖 AI Rankings
                         </button>
                         <button
-                          onClick={() => onNavigate(`edit-job/${job._id}`)}
+                          onClick={() =>
+                            navigate(`/employer/edit-job/${job._id}`)
+                          }
                           className="btn-secondary px-4 py-2 text-sm flex items-center gap-2"
                         >
                           <svg
@@ -346,7 +350,7 @@ function MyJobsPage({ onNavigate }) {
                           Edit Job
                         </button>
                         <button
-                          onClick={() => onNavigate("applications")}
+                          onClick={() => navigate("/employer/applications")}
                           className="btn-primary px-4 py-2 text-sm flex items-center gap-2"
                         >
                           <svg
@@ -438,7 +442,7 @@ function MyJobsPage({ onNavigate }) {
                 : `No ${filter} jobs found`}
             </p>
             <button
-              onClick={() => onNavigate("post-job")}
+              onClick={() => navigate("/employer/post-job")}
               className="btn-primary px-6 py-3"
             >
               Post Your First Job
@@ -447,7 +451,7 @@ function MyJobsPage({ onNavigate }) {
         )}
       </div>
 
-      <Footer user={user} onNavigate={onNavigate} />
+      <Footer user={user} />
 
       {/* Toast Notification */}
       <Toast

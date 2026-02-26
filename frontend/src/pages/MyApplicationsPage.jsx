@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { applicationAPI } from "../utils/api";
 import Header from "../components/layout/Header";
@@ -6,8 +7,9 @@ import Footer from "../components/layout/Footer";
 import Toast from "../components/ui/Toast";
 import { useToast } from "../hooks/useToast";
 
-function MyApplicationsPage({ onNavigate }) {
+function MyApplicationsPage() {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [applications, setApplications] = useState([]);
   const [filter, setFilter] = useState("all");
@@ -79,7 +81,7 @@ function MyApplicationsPage({ onNavigate }) {
 
   const handleLogout = async () => {
     await logout();
-    onNavigate("home");
+    navigate("/");
   };
 
   const handleWithdraw = async (applicationId) => {
@@ -122,12 +124,12 @@ function MyApplicationsPage({ onNavigate }) {
 
   return (
     <div className="min-h-screen bg-dark-950 text-slate-100">
-      <Header onNavigate={onNavigate} user={user} onLogout={handleLogout} />
+      <Header user={user} onLogout={handleLogout} />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-24">
         <div className="mb-8">
           <button
-            onClick={() => onNavigate("jobseeker-dashboard")}
+            onClick={() => navigate("/jobseeker/dashboard")}
             className="text-slate-400 hover:text-primary-400 mb-4 flex items-center gap-2"
           >
             <svg
@@ -249,7 +251,7 @@ function MyApplicationsPage({ onNavigate }) {
                     <div className="flex flex-wrap gap-3">
                       <button
                         onClick={() =>
-                          onNavigate(`job-details/${application.job?._id}`)
+                          navigate(`/job-details/${application.job?._id}`)
                         }
                         className="btn-primary px-4 py-2 text-sm"
                       >
@@ -323,7 +325,7 @@ function MyApplicationsPage({ onNavigate }) {
                 : `No ${filter} applications`}
             </p>
             <button
-              onClick={() => onNavigate("job-listings")}
+              onClick={() => navigate("/job-listings")}
               className="btn-primary px-6 py-3"
             >
               Browse Jobs
@@ -332,7 +334,7 @@ function MyApplicationsPage({ onNavigate }) {
         )}
       </div>
 
-      <Footer user={user} onNavigate={onNavigate} />
+      <Footer user={user} />
 
       {/* Toast Notification */}
       <Toast

@@ -1,10 +1,15 @@
 import { useState, useEffect } from "react";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 
-function CompanyProfilePage({ onNavigate, companyId, referrer }) {
+function CompanyProfilePage() {
+  const { companyId } = useParams();
+  const location = useLocation();
+  const referrer = location.state?.referrer;
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [company, setCompany] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -20,15 +25,15 @@ function CompanyProfilePage({ onNavigate, companyId, referrer }) {
     if (referrer) {
       if (referrer.startsWith("job-details/")) {
         // Navigate back to the specific job details page
-        onNavigate(referrer);
+        navigate(referrer);
       } else {
         // Navigate to the referrer page
-        onNavigate(referrer);
+        navigate(referrer);
       }
     } else if (user?.userType === "jobseeker") {
-      onNavigate("jobseeker-dashboard");
+      navigate("/jobseeker/dashboard");
     } else {
-      onNavigate("home");
+      navigate("/");
     }
   };
 
@@ -86,13 +91,13 @@ function CompanyProfilePage({ onNavigate, companyId, referrer }) {
 
   const handleLogout = async () => {
     await logout();
-    onNavigate("home");
+    navigate("/");
   };
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-dark-950 text-slate-100">
-        <Header onNavigate={onNavigate} user={user} onLogout={handleLogout} />
+        <Header user={user} onLogout={handleLogout} />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-24">
           <div className="flex items-center justify-center py-20">
             <div className="text-center">
@@ -126,7 +131,7 @@ function CompanyProfilePage({ onNavigate, companyId, referrer }) {
   if (error || !company) {
     return (
       <div className="min-h-screen bg-dark-950 text-slate-100">
-        <Header onNavigate={onNavigate} user={user} onLogout={handleLogout} />
+        <Header user={user} onLogout={handleLogout} />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-24">
           <div className="glass-card p-8 rounded-xl text-center">
             <svg
@@ -159,7 +164,7 @@ function CompanyProfilePage({ onNavigate, companyId, referrer }) {
 
   return (
     <div className="min-h-screen bg-dark-950 text-slate-100">
-      <Header onNavigate={onNavigate} user={user} onLogout={handleLogout} />
+      <Header user={user} onLogout={handleLogout} />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-24">
         {/* Back Button */}

@@ -1,10 +1,13 @@
 import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 
-function CandidateProfilePage({ onNavigate, candidateId }) {
+function CandidateProfilePage() {
+  const { candidateId } = useParams();
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [candidate, setCandidate] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -47,13 +50,13 @@ function CandidateProfilePage({ onNavigate, candidateId }) {
 
   const handleLogout = async () => {
     await logout();
-    onNavigate("home");
+    navigate("/");
   };
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-dark-950 text-slate-100">
-        <Header onNavigate={onNavigate} user={user} onLogout={handleLogout} />
+        <Header user={user} onLogout={handleLogout} />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-24">
           <div className="flex items-center justify-center py-20">
             <div className="text-center">
@@ -87,7 +90,7 @@ function CandidateProfilePage({ onNavigate, candidateId }) {
   if (error || !candidate) {
     return (
       <div className="min-h-screen bg-dark-950 text-slate-100">
-        <Header onNavigate={onNavigate} user={user} onLogout={handleLogout} />
+        <Header user={user} onLogout={handleLogout} />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-24">
           <div className="glass-card p-8 rounded-xl text-center">
             <svg
@@ -107,7 +110,7 @@ function CandidateProfilePage({ onNavigate, candidateId }) {
               {error || "Candidate not found"}
             </h2>
             <button
-              onClick={() => onNavigate("applications")}
+              onClick={() => navigate("/employer/applications")}
               className="btn-primary px-6 py-3 mt-4"
             >
               Back to Applications
@@ -133,12 +136,12 @@ function CandidateProfilePage({ onNavigate, candidateId }) {
 
   return (
     <div className="min-h-screen bg-dark-950 text-slate-100">
-      <Header onNavigate={onNavigate} user={user} onLogout={handleLogout} />
+      <Header user={user} onLogout={handleLogout} />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-24">
         {/* Back Button */}
         <button
-          onClick={() => onNavigate("applications")}
+          onClick={() => navigate("/employer/applications")}
           className="text-slate-400 hover:text-primary-400 mb-6 flex items-center gap-2"
         >
           <svg
@@ -600,7 +603,7 @@ function CandidateProfilePage({ onNavigate, candidateId }) {
         </div>
       </div>
 
-      <Footer user={user} onNavigate={onNavigate} />
+      <Footer user={user} />
     </div>
   );
 }

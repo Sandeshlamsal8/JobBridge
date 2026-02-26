@@ -1,16 +1,18 @@
-import { useState } from 'react';
-import { Mail, ArrowLeft, CheckCircle } from 'lucide-react';
-import { authAPI } from '../utils/api';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Mail, ArrowLeft, CheckCircle } from "lucide-react";
+import { authAPI } from "../utils/api";
 
-const ForgotPasswordPage = ({ onNavigate }) => {
-  const [email, setEmail] = useState('');
+const ForgotPasswordPage = () => {
+  const navigate = useNavigate();
+  const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setIsLoading(true);
 
     try {
@@ -20,10 +22,7 @@ const ForgotPasswordPage = ({ onNavigate }) => {
         setSuccess(true);
       }
     } catch (err) {
-      setError(
-        err.message || 
-        'Failed to send reset email. Please try again.'
-      );
+      setError(err.message || "Failed to send reset email. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -38,25 +37,27 @@ const ForgotPasswordPage = ({ onNavigate }) => {
               <div className="mx-auto w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mb-4">
                 <CheckCircle className="w-8 h-8 text-green-500" />
               </div>
-              
+
               <h2 className="text-2xl font-bold text-white mb-2">
                 Check Your Email
               </h2>
-              
+
               <p className="text-slate-300 mb-6">
-                If an account exists with <span className="font-semibold text-white">{email}</span>, 
-                you will receive a password reset link shortly.
+                If an account exists with{" "}
+                <span className="font-semibold text-white">{email}</span>, you
+                will receive a password reset link shortly.
               </p>
 
               <div className="bg-primary-500/10 border border-primary-500/20 rounded-lg p-4 mb-6">
                 <p className="text-sm text-slate-300">
-                  <strong className="text-primary-400">Note:</strong> The reset link will expire in 1 hour. 
-                  If you don't see the email, check your spam folder.
+                  <strong className="text-primary-400">Note:</strong> The reset
+                  link will expire in 1 hour. If you don't see the email, check
+                  your spam folder.
                 </p>
               </div>
 
               <button
-                onClick={() => onNavigate('login')}
+                onClick={() => navigate("/login")}
                 className="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200"
               >
                 Back to Login
@@ -81,7 +82,8 @@ const ForgotPasswordPage = ({ onNavigate }) => {
               Forgot Password?
             </h2>
             <p className="text-slate-400">
-              No worries! Enter your email and we'll send you reset instructions.
+              No worries! Enter your email and we'll send you reset
+              instructions.
             </p>
           </div>
 
@@ -95,7 +97,10 @@ const ForgotPasswordPage = ({ onNavigate }) => {
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-slate-300 mb-2">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-slate-300 mb-2"
+              >
                 Email Address
               </label>
               <input
@@ -121,7 +126,7 @@ const ForgotPasswordPage = ({ onNavigate }) => {
                   Sending...
                 </>
               ) : (
-                'Send Reset Link'
+                "Send Reset Link"
               )}
             </button>
           </form>
@@ -129,7 +134,7 @@ const ForgotPasswordPage = ({ onNavigate }) => {
           {/* Back to Login */}
           <div className="mt-6 text-center">
             <button
-              onClick={() => onNavigate('login')}
+              onClick={() => navigate("/login")}
               className="inline-flex items-center text-primary-400 hover:text-primary-300 transition-colors"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
@@ -141,9 +146,9 @@ const ForgotPasswordPage = ({ onNavigate }) => {
         {/* Additional Help */}
         <div className="mt-6 text-center">
           <p className="text-slate-400 text-sm">
-            Remember your password?{' '}
+            Remember your password?{" "}
             <button
-              onClick={() => onNavigate('login')}
+              onClick={() => navigate("/login")}
               className="text-primary-400 hover:text-primary-300 font-medium transition-colors"
             >
               Sign in

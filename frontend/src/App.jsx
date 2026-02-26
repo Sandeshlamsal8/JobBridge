@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
+import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import ToastContainer from "./components/ToastContainer";
 import HomePage from "./pages/HomePage";
@@ -26,50 +27,102 @@ import CandidateRankingPage from "./pages/CandidateRankingPage";
 import JobDetailsPage from "./pages/JobDetailsPage";
 import MessageCenterPage from "./pages/MessageCenterPage";
 
+// Protected Route Component for Employers
+function EmployerRoute({ children }) {
+  const { user, isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-dark-950 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin h-12 w-12 border-4 border-primary-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-slate-300 text-lg">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated || user?.userType !== "employer") {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+}
+
+// Protected Route Component for Job Seekers
+function JobSeekerRoute({ children }) {
+  const { user, isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-dark-950 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin h-12 w-12 border-4 border-primary-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-slate-300 text-lg">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated || user?.userType !== "jobseeker") {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+}
+
+// Protected Route Component for Any Authenticated User
+function ProtectedRoute({ children }) {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-dark-950 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin h-12 w-12 border-4 border-primary-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-slate-300 text-lg">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return children;
+}
+
+// Redirect authenticated users away from auth pages
+function GuestRoute({ children }) {
+  const { user, isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-dark-950 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin h-12 w-12 border-4 border-primary-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-slate-300 text-lg">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isAuthenticated && user) {
+    // Redirect to appropriate dashboard
+    if (user.userType === "employer") {
+      return <Navigate to="/employer/dashboard" replace />;
+    } else if (user.userType === "jobseeker") {
+      return <Navigate to="/jobseeker/dashboard" replace />;
+    }
+  }
+
+  return children;
+}
+
 function AppContent() {
-  const { user, isAuthenticated, isLoading, verifyEmail } = useAuth();
-  const [currentPage, setCurrentPage] = useState("home");
-  const [pageData, setPageData] = useState(null);
-
-  // Check for reset password token in URL on mount
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get("token");
-
-    if (token) {
-      setCurrentPage("reset-password");
-      setPageData({ token });
-      // Clear the URL parameter
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
-  }, []);
-
-  // Navigation handler with data
-  const handleNavigate = (page, data = null) => {
-    setCurrentPage(page);
-    setPageData(data);
-  };
-
-  // Handle verification success - redirect to login page
-  const handleVerificationSuccess = async (data) => {
-    // Account created successfully, redirect to login page
-    setCurrentPage("login");
-  };
-
-  // Redirect to appropriate dashboard after login
-  useEffect(() => {
-    if (
-      isAuthenticated &&
-      user &&
-      (currentPage === "login" || currentPage === "signup")
-    ) {
-      if (user.userType === "jobseeker") {
-        setCurrentPage("jobseeker-dashboard");
-      } else if (user.userType === "employer") {
-        setCurrentPage("employer-dashboard");
-      }
-    }
-  }, [isAuthenticated, user, currentPage]);
+  const { user, isAuthenticated, isLoading } = useAuth();
+  const navigate = useNavigate();
 
   // Show loading screen while checking authentication
   if (isLoading) {
@@ -83,194 +136,171 @@ function AppContent() {
     );
   }
 
-  const renderPage = () => {
-    switch (currentPage) {
-      case "login":
-        return <LoginPage onNavigate={handleNavigate} />;
-      case "signup":
-        return <SignUpPage onNavigate={handleNavigate} />;
-      case "verify-email":
-        return (
-          <EmailVerificationPage
-            email={pageData?.email}
-            onNavigate={handleNavigate}
-            onVerificationSuccess={handleVerificationSuccess}
-          />
-        );
-      case "forgot-password":
-        return <ForgotPasswordPage onNavigate={handleNavigate} />;
-      case "reset-password":
-        return (
-          <ResetPasswordPage
-            onNavigate={handleNavigate}
-            token={pageData?.token}
-          />
-        );
-      case "job-listings":
-        return <JobListingsPage onNavigate={handleNavigate} />;
-      // Employer Routes
-      case "post-job":
-        return isAuthenticated && user?.userType === "employer" ? (
-          <PostJobPage onNavigate={handleNavigate} />
-        ) : (
-          <HomePage onNavigate={handleNavigate} />
-        );
-      case "employer-dashboard":
-        return isAuthenticated && user?.userType === "employer" ? (
-          <EmployerDashboard onNavigate={handleNavigate} />
-        ) : (
-          <HomePage onNavigate={handleNavigate} />
-        );
-      case "my-jobs":
-        return isAuthenticated && user?.userType === "employer" ? (
-          <MyJobsPage onNavigate={handleNavigate} />
-        ) : (
-          <HomePage onNavigate={handleNavigate} />
-        );
-      case "applications":
-        return isAuthenticated && user?.userType === "employer" ? (
-          <ApplicationsPage onNavigate={handleNavigate} />
-        ) : (
-          <HomePage onNavigate={handleNavigate} />
-        );
-
-      // Job Seeker Routes
-      case "jobseeker-dashboard":
-        return isAuthenticated && user?.userType === "jobseeker" ? (
-          <JobSeekerDashboard onNavigate={handleNavigate} />
-        ) : (
-          <HomePage onNavigate={handleNavigate} />
-        );
-      case "my-applications":
-        return isAuthenticated && user?.userType === "jobseeker" ? (
-          <MyApplicationsPage onNavigate={handleNavigate} />
-        ) : (
-          <HomePage onNavigate={handleNavigate} />
-        );
-      case "saved-jobs":
-        return isAuthenticated && user?.userType === "jobseeker" ? (
-          <SavedJobsPage onNavigate={handleNavigate} />
-        ) : (
-          <HomePage onNavigate={handleNavigate} />
-        );
-
-      // Common Routes
-      case "contact":
-        return <ContactPage onNavigate={handleNavigate} />;
-      case "messages":
-        return isAuthenticated ? (
-          <MessageCenterPage onNavigate={handleNavigate} />
-        ) : (
-          <HomePage onNavigate={handleNavigate} />
-        );
-      case "profile-settings":
-        return isAuthenticated ? (
-          <ProfileSettings onNavigate={handleNavigate} />
-        ) : (
-          <HomePage onNavigate={handleNavigate} />
-        );
-      case "account-settings":
-        return isAuthenticated ? (
-          <AccountSettings onNavigate={handleNavigate} />
-        ) : (
-          <HomePage onNavigate={handleNavigate} />
-        );
-
-      // Dynamic Routes - Candidate Profile
-      default:
-        if (currentPage.startsWith("candidate-profile/")) {
-          const candidateId = currentPage.split("/")[1];
-          return isAuthenticated && user?.userType === "employer" ? (
-            <CandidateProfilePage
-              onNavigate={handleNavigate}
-              candidateId={candidateId}
-            />
-          ) : (
-            <HomePage onNavigate={handleNavigate} />
-          );
+  return (
+    <Routes>
+      {/* Public Routes */}
+      <Route path="/" element={<HomePage />} />
+      <Route
+        path="/login"
+        element={
+          <GuestRoute>
+            <LoginPage />
+          </GuestRoute>
         }
-
-        // Dynamic Routes - Application Review
-        if (currentPage.startsWith("application-review/")) {
-          const applicationId = currentPage.split("/")[1];
-          return isAuthenticated && user?.userType === "employer" ? (
-            <ApplicationReviewPage
-              onNavigate={handleNavigate}
-              applicationId={applicationId}
-            />
-          ) : (
-            <HomePage onNavigate={handleNavigate} />
-          );
+      />
+      <Route
+        path="/signup"
+        element={
+          <GuestRoute>
+            <SignUpPage />
+          </GuestRoute>
         }
+      />
+      <Route path="/verify-email" element={<EmailVerificationPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/job-listings" element={<JobListingsPage />} />
+      <Route path="/job-details/:jobId" element={<JobDetailsPage />} />
+      <Route path="/contact" element={<ContactPage />} />
 
-        // Dynamic Routes - Candidate Ranking
-        if (currentPage.startsWith("candidate-ranking/")) {
-          const jobId = currentPage.split("/")[1];
-          return isAuthenticated && user?.userType === "employer" ? (
-            <CandidateRankingPage onNavigate={handleNavigate} jobId={jobId} />
-          ) : (
-            <HomePage onNavigate={handleNavigate} />
-          );
+      {/* Employer Routes */}
+      <Route
+        path="/employer/dashboard"
+        element={
+          <EmployerRoute>
+            <EmployerDashboard />
+          </EmployerRoute>
         }
-
-        // Dynamic Routes - Company Profile
-        if (currentPage.startsWith("company-profile/")) {
-          const companyId = currentPage.split("/")[1];
-          return isAuthenticated && user?.userType === "jobseeker" ? (
-            <CompanyProfilePage
-              onNavigate={handleNavigate}
-              companyId={companyId}
-              referrer={pageData?.referrer}
-            />
-          ) : (
-            <HomePage onNavigate={handleNavigate} />
-          );
+      />
+      <Route
+        path="/employer/post-job"
+        element={
+          <EmployerRoute>
+            <PostJobPage />
+          </EmployerRoute>
         }
-
-        // Dynamic Routes - Job Details
-        if (currentPage.startsWith("job-details/")) {
-          const jobId = currentPage.split("/")[1];
-          return <JobDetailsPage onNavigate={handleNavigate} jobId={jobId} />;
+      />
+      <Route
+        path="/employer/my-jobs"
+        element={
+          <EmployerRoute>
+            <MyJobsPage />
+          </EmployerRoute>
         }
-
-        // Dynamic Routes - Messages with conversation ID
-        if (currentPage.startsWith("messages/")) {
-          const conversationId = currentPage.split("/")[1];
-          return isAuthenticated ? (
-            <MessageCenterPage
-              onNavigate={handleNavigate}
-              conversationId={conversationId}
-            />
-          ) : (
-            <HomePage onNavigate={handleNavigate} />
-          );
+      />
+      <Route
+        path="/employer/applications"
+        element={
+          <EmployerRoute>
+            <ApplicationsPage />
+          </EmployerRoute>
         }
-
-        // Dynamic Routes - Edit Job
-        if (currentPage.startsWith("edit-job/")) {
-          const jobId = currentPage.split("/")[1];
-          return isAuthenticated && user?.userType === "employer" ? (
-            <EditJobPage onNavigate={handleNavigate} jobId={jobId} />
-          ) : (
-            <HomePage onNavigate={handleNavigate} />
-          );
+      />
+      <Route
+        path="/employer/edit-job/:jobId"
+        element={
+          <EmployerRoute>
+            <EditJobPage />
+          </EmployerRoute>
         }
-
-        // If user is authenticated, redirect to their dashboard
-        if (isAuthenticated && user) {
-          if (user.userType === "jobseeker") {
-            setCurrentPage("jobseeker-dashboard");
-            return <JobSeekerDashboard onNavigate={handleNavigate} />;
-          } else if (user.userType === "employer") {
-            setCurrentPage("employer-dashboard");
-            return <EmployerDashboard onNavigate={handleNavigate} />;
-          }
+      />
+      <Route
+        path="/employer/candidate-profile/:candidateId"
+        element={
+          <EmployerRoute>
+            <CandidateProfilePage />
+          </EmployerRoute>
         }
-        return <HomePage onNavigate={handleNavigate} />;
-    }
-  };
+      />
+      <Route
+        path="/employer/application-review/:applicationId"
+        element={
+          <EmployerRoute>
+            <ApplicationReviewPage />
+          </EmployerRoute>
+        }
+      />
+      <Route
+        path="/employer/candidate-ranking/:jobId"
+        element={
+          <EmployerRoute>
+            <CandidateRankingPage />
+          </EmployerRoute>
+        }
+      />
 
-  return renderPage();
+      {/* Job Seeker Routes */}
+      <Route
+        path="/jobseeker/dashboard"
+        element={
+          <JobSeekerRoute>
+            <JobSeekerDashboard />
+          </JobSeekerRoute>
+        }
+      />
+      <Route
+        path="/jobseeker/my-applications"
+        element={
+          <JobSeekerRoute>
+            <MyApplicationsPage />
+          </JobSeekerRoute>
+        }
+      />
+      <Route
+        path="/jobseeker/saved-jobs"
+        element={
+          <JobSeekerRoute>
+            <SavedJobsPage />
+          </JobSeekerRoute>
+        }
+      />
+      <Route
+        path="/jobseeker/company-profile/:companyId"
+        element={
+          <JobSeekerRoute>
+            <CompanyProfilePage />
+          </JobSeekerRoute>
+        }
+      />
+
+      {/* Common Protected Routes */}
+      <Route
+        path="/messages"
+        element={
+          <ProtectedRoute>
+            <MessageCenterPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/messages/:conversationId"
+        element={
+          <ProtectedRoute>
+            <MessageCenterPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/profile-settings"
+        element={
+          <ProtectedRoute>
+            <ProfileSettings />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/account-settings"
+        element={
+          <ProtectedRoute>
+            <AccountSettings />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Catch all - redirect to home */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
 }
 
 function App() {

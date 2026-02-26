@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { applicationAPI } from "../utils/api";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 
-function ApplicationsPage({ onNavigate }) {
+function ApplicationsPage() {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [applications, setApplications] = useState([]);
   const [filter, setFilter] = useState("all");
@@ -82,17 +84,17 @@ function ApplicationsPage({ onNavigate }) {
 
   const handleLogout = async () => {
     await logout();
-    onNavigate("home");
+    navigate("/");
   };
 
   return (
     <div className="min-h-screen bg-dark-950 text-slate-100">
-      <Header onNavigate={onNavigate} user={user} onLogout={handleLogout} />
+      <Header user={user} onLogout={handleLogout} />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-24">
         <div className="mb-8">
           <button
-            onClick={() => onNavigate("employer-dashboard")}
+            onClick={() => navigate("/employer/dashboard")}
             className="text-slate-400 hover:text-primary-400 mb-4 flex items-center gap-2"
           >
             <svg
@@ -225,7 +227,7 @@ function ApplicationsPage({ onNavigate }) {
                       <div className="flex flex-wrap gap-3">
                         <button
                           onClick={() =>
-                            onNavigate(
+                            navigate(
                               `candidate-profile/${application.applicant?._id}`
                             )
                           }
@@ -235,7 +237,7 @@ function ApplicationsPage({ onNavigate }) {
                         </button>
                         <button
                           onClick={() =>
-                            onNavigate(`application-review/${application._id}`)
+                            navigate(`/employer/application-review/${application._id}`)
                           }
                           className="btn-primary px-4 py-2 text-sm"
                         >
@@ -274,7 +276,7 @@ function ApplicationsPage({ onNavigate }) {
                 : `No ${filter} applications`}
             </p>
             <button
-              onClick={() => onNavigate("my-jobs")}
+              onClick={() => navigate("/employer/my-jobs")}
               className="btn-primary px-6 py-3"
             >
               View My Jobs
@@ -283,7 +285,7 @@ function ApplicationsPage({ onNavigate }) {
         )}
       </div>
 
-      <Footer user={user} onNavigate={onNavigate} />
+      <Footer user={user} />
     </div>
   );
 }

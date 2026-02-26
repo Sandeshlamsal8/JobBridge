@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 import PasswordStrength from "../components/PasswordStrength";
 
-function AccountSettings({ onNavigate }) {
+function AccountSettings() {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -58,7 +60,7 @@ function AccountSettings({ onNavigate }) {
 
   const handleLogout = async () => {
     await logout();
-    onNavigate("home");
+    navigate("/");
   };
 
   const handleChangePassword = async (e) => {
@@ -178,7 +180,7 @@ function AccountSettings({ onNavigate }) {
 
       if (data.success) {
         await logout();
-        onNavigate("home");
+        navigate("/");
       } else {
         setMessage({
           type: "error",
@@ -198,13 +200,13 @@ function AccountSettings({ onNavigate }) {
 
   return (
     <div className="min-h-screen bg-dark-950 text-slate-100">
-      <Header onNavigate={onNavigate} user={user} onLogout={handleLogout} />
+      <Header user={user} onLogout={handleLogout} />
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-24">
         {/* Back Button */}
         <button
           onClick={() =>
-            onNavigate(
+            navigate(
               user?.userType === "employer"
                 ? "employer-dashboard"
                 : "jobseeker-dashboard"
@@ -618,7 +620,7 @@ function AccountSettings({ onNavigate }) {
         </div>
       )}
 
-      <Footer user={user} onNavigate={onNavigate} />
+      <Footer user={user} />
     </div>
   );
 }

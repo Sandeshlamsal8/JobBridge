@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 import JobSeekerSetupModal from "../components/JobSeekerSetupModal";
 import { showToast } from "../components/ToastContainer";
 
-function JobSeekerDashboard({ onNavigate }) {
+function JobSeekerDashboard() {
   const { user, logout, updateUser } = useAuth();
+  const navigate = useNavigate();
   const [showProfileSetup, setShowProfileSetup] = useState(false);
 
   const [stats, setStats] = useState({
@@ -255,12 +257,12 @@ function JobSeekerDashboard({ onNavigate }) {
 
   const handleLogout = async () => {
     await logout();
-    onNavigate("home");
+    navigate("/");
   };
 
   return (
     <div className="min-h-screen bg-dark-950 text-slate-100">
-      <Header onNavigate={onNavigate} user={user} onLogout={handleLogout} />
+      <Header user={user} onLogout={handleLogout} />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-24">
         {/* Welcome Header */}
@@ -469,7 +471,7 @@ function JobSeekerDashboard({ onNavigate }) {
                     Recent Applications
                   </h2>
                   <button
-                    onClick={() => onNavigate("my-applications")}
+                    onClick={() => navigate("/jobseeker/my-applications")}
                     className="text-primary-400 hover:text-primary-300 transition-colors text-sm font-semibold"
                   >
                     View All
@@ -525,7 +527,7 @@ function JobSeekerDashboard({ onNavigate }) {
                       </svg>
                       <p className="text-slate-400 mb-4">No applications yet</p>
                       <button
-                        onClick={() => onNavigate("job-listings")}
+                        onClick={() => navigate("/job-listings")}
                         className="btn-primary px-6 py-2"
                       >
                         Browse Jobs
@@ -552,7 +554,7 @@ function JobSeekerDashboard({ onNavigate }) {
                     )}
                   </div>
                   <button
-                    onClick={() => onNavigate("job-listings")}
+                    onClick={() => navigate("/job-listings")}
                     className="text-primary-400 hover:text-primary-300 transition-colors text-sm font-semibold"
                   >
                     View All
@@ -609,7 +611,7 @@ function JobSeekerDashboard({ onNavigate }) {
                         </div>
                         <div className="flex gap-3">
                           <button
-                            onClick={() => onNavigate(`job-details/${job._id}`)}
+                            onClick={() => navigate(`/job-details/${job._id}`)}
                             className="btn-primary text-sm px-4 py-2 w-full"
                           >
                             View Details
@@ -641,14 +643,14 @@ function JobSeekerDashboard({ onNavigate }) {
                       <div className="flex gap-3 justify-center">
                         {!user?.jobSeekerProfile?.jobPreferences?.categories?.length && (
                           <button
-                            onClick={() => onNavigate("profile-settings")}
+                            onClick={() => navigate("/profile-settings")}
                             className="btn-secondary px-4 py-2 text-sm"
                           >
                             Set Preferences
                           </button>
                         )}
                         <button
-                          onClick={() => onNavigate("job-listings")}
+                          onClick={() => navigate("/job-listings")}
                           className="btn-primary px-4 py-2 text-sm"
                         >
                           Browse All Jobs
@@ -663,7 +665,7 @@ function JobSeekerDashboard({ onNavigate }) {
         )}
       </div>
 
-      <Footer user={user} onNavigate={onNavigate} />
+      <Footer user={user} />
 
       {/* Profile Setup Modal */}
       <JobSeekerSetupModal

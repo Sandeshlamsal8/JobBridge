@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { showToast } from "../components/ToastContainer";
 import { isCompanyProfileComplete } from "../utils/companyProfile";
@@ -7,9 +8,14 @@ import Footer from "../components/layout/Footer";
 import LocationAutocomplete from "../components/LocationAutocomplete";
 import { useJobCategories } from "../hooks/useJobCategories";
 
-function PostJobPage({ onNavigate }) {
+function PostJobPage() {
   const { user, logout } = useAuth();
-  const { categories, isLoading: categoriesLoading, error: categoriesError } = useJobCategories();
+  const navigate = useNavigate();
+  const {
+    categories,
+    isLoading: categoriesLoading,
+    error: categoriesError,
+  } = useJobCategories();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
@@ -20,12 +26,12 @@ function PostJobPage({ onNavigate }) {
       showToast(
         "Please complete your company profile before posting jobs",
         "warning",
-        5000
+        5000,
       );
-      onNavigate("employer-dashboard");
+      navigate("/employer/dashboard");
       return;
     }
-  }, [user, onNavigate]);
+  }, [user, navigate]);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -142,7 +148,7 @@ function PostJobPage({ onNavigate }) {
       if (data.success) {
         setSuccess(true);
         setTimeout(() => {
-          onNavigate("employer-dashboard");
+          navigate("/employer/dashboard");
         }, 2000);
       } else {
         setError(data.message || "Failed to post job");
@@ -156,7 +162,7 @@ function PostJobPage({ onNavigate }) {
 
   const handleLogout = async () => {
     await logout();
-    onNavigate("home");
+    navigate("/");
   };
 
   if (success) {
@@ -189,12 +195,12 @@ function PostJobPage({ onNavigate }) {
 
   return (
     <div className="min-h-screen bg-dark-950 text-slate-100">
-      <Header onNavigate={onNavigate} user={user} onLogout={handleLogout} />
+      <Header user={user} onLogout={handleLogout} />
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-24">
         <div className="mb-8 animate-fade-in">
           <button
-            onClick={() => onNavigate("employer-dashboard")}
+            onClick={() => navigate("/employer/dashboard")}
             className="flex items-center gap-2 text-primary-400 hover:text-primary-300 transition-colors mb-4"
           >
             <svg
@@ -353,7 +359,8 @@ function PostJobPage({ onNavigate }) {
                   ) : (
                     categories.map((cat) => (
                       <option key={cat.value} value={cat.value}>
-                        {cat.label} {cat.jobCount > 0 && `(${cat.jobCount} jobs)`}
+                        {cat.label}{" "}
+                        {cat.jobCount > 0 && `(${cat.jobCount} jobs)`}
                       </option>
                     ))
                   )}
@@ -656,7 +663,7 @@ function PostJobPage({ onNavigate }) {
                     addToArray(
                       "requirements",
                       currentRequirement,
-                      setCurrentRequirement
+                      setCurrentRequirement,
                     );
                   }
                 }}
@@ -667,7 +674,7 @@ function PostJobPage({ onNavigate }) {
                   addToArray(
                     "requirements",
                     currentRequirement,
-                    setCurrentRequirement
+                    setCurrentRequirement,
                   )
                 }
                 className="btn-primary px-6"
@@ -729,7 +736,7 @@ function PostJobPage({ onNavigate }) {
                     addToArray(
                       "responsibilities",
                       currentResponsibility,
-                      setCurrentResponsibility
+                      setCurrentResponsibility,
                     );
                   }
                 }}
@@ -740,7 +747,7 @@ function PostJobPage({ onNavigate }) {
                   addToArray(
                     "responsibilities",
                     currentResponsibility,
-                    setCurrentResponsibility
+                    setCurrentResponsibility,
                   )
                 }
                 className="btn-primary px-6"
@@ -859,7 +866,7 @@ function PostJobPage({ onNavigate }) {
               <div className="flex gap-3">
                 <button
                   type="button"
-                  onClick={() => onNavigate("employer-dashboard")}
+                  onClick={() => navigate("/employer/dashboard")}
                   className="btn-secondary px-6 py-3 font-semibold"
                   disabled={isLoading}
                 >
@@ -929,7 +936,7 @@ function PostJobPage({ onNavigate }) {
         </form>
       </div>
 
-      <Footer user={user} onNavigate={onNavigate} />
+      <Footer user={user} />
     </div>
   );
 }

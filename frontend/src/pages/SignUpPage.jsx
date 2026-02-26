@@ -1,10 +1,12 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { showToast } from "../components/ToastContainer";
 import LegalModal from "../components/LegalModal";
 
-function SignUpPage({ onNavigate }) {
+function SignUpPage() {
   const { signup, isLoading, error, clearError } = useAuth();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -138,10 +140,10 @@ function SignUpPage({ onNavigate }) {
       showToast(
         "Account created successfully! Please check your email to verify your account.",
         "success",
-        6000
+        6000,
       );
       // Redirect to verification page
-      onNavigate("verify-email", { email: formData.email });
+      navigate("/verify-email", { state: { email: formData.email } });
     } else if (result.errors) {
       // Handle server validation errors
       const serverErrors = {};
@@ -170,7 +172,7 @@ function SignUpPage({ onNavigate }) {
         {/* Header */}
         <div className="text-center">
           <button
-            onClick={() => onNavigate && onNavigate("home")}
+            onClick={() => navigate("/")}
             className="text-3xl lg:text-4xl font-bold gradient-text mb-4 hover:scale-105 transition-transform duration-300"
           >
             JobBridge
@@ -436,10 +438,10 @@ function SignUpPage({ onNavigate }) {
                             ? passwordStrength.score <= 2
                               ? "bg-red-400"
                               : passwordStrength.score <= 3
-                              ? "bg-yellow-400"
-                              : passwordStrength.score <= 4
-                              ? "bg-blue-400"
-                              : "bg-green-400"
+                                ? "bg-yellow-400"
+                                : passwordStrength.score <= 4
+                                  ? "bg-blue-400"
+                                  : "bg-green-400"
                             : "bg-dark-600"
                         }`}
                       />
@@ -452,19 +454,19 @@ function SignUpPage({ onNavigate }) {
                       passwordStrength.score <= 2
                         ? "text-red-400"
                         : passwordStrength.score <= 3
-                        ? "text-yellow-400"
-                        : passwordStrength.score <= 4
-                        ? "text-blue-400"
-                        : "text-green-400"
+                          ? "text-yellow-400"
+                          : passwordStrength.score <= 4
+                            ? "text-blue-400"
+                            : "text-green-400"
                     }`}
                   >
                     {passwordStrength.score <= 2
                       ? "Weak password"
                       : passwordStrength.score <= 3
-                      ? "Fair password"
-                      : passwordStrength.score <= 4
-                      ? "Good password"
-                      : "Strong password"}
+                        ? "Fair password"
+                        : passwordStrength.score <= 4
+                          ? "Good password"
+                          : "Strong password"}
                   </p>
 
                   {/* Requirements Checklist */}
@@ -745,7 +747,7 @@ function SignUpPage({ onNavigate }) {
           <p className="text-slate-300 text-lg">
             Already have an account?{" "}
             <button
-              onClick={() => onNavigate && onNavigate("login")}
+              onClick={() => navigate("/login")}
               className="text-primary-400 hover:text-primary-300 transition-colors font-semibold hover:underline"
               disabled={isLoading}
             >

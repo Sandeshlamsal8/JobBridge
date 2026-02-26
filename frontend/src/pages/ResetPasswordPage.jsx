@@ -1,26 +1,30 @@
-import { useState, useEffect } from 'react';
-import { Lock, Eye, EyeOff, CheckCircle, AlertCircle } from 'lucide-react';
-import { authAPI } from '../utils/api';
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { Lock, Eye, EyeOff, CheckCircle, AlertCircle } from "lucide-react";
+import { authAPI } from "../utils/api";
 
-const ResetPasswordPage = ({ onNavigate, token }) => {
+const ResetPasswordPage = () => {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get("token");
   const [formData, setFormData] = useState({
-    password: '',
-    confirmPassword: ''
+    password: "",
+    confirmPassword: "",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isVerifying, setIsVerifying] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [tokenValid, setTokenValid] = useState(false);
-  const [userEmail, setUserEmail] = useState('');
+  const [userEmail, setUserEmail] = useState("");
 
   // Verify token on mount
   useEffect(() => {
     const verifyToken = async () => {
       if (!token) {
-        setError('Invalid reset link. Please request a new password reset.');
+        setError("Invalid reset link. Please request a new password reset.");
         setIsVerifying(false);
         return;
       }
@@ -33,8 +37,8 @@ const ResetPasswordPage = ({ onNavigate, token }) => {
         }
       } catch (err) {
         setError(
-          err.message || 
-          'Invalid or expired reset link. Please request a new password reset.'
+          err.message ||
+            "Invalid or expired reset link. Please request a new password reset.",
         );
       } finally {
         setIsVerifying(false);
@@ -47,30 +51,30 @@ const ResetPasswordPage = ({ onNavigate, token }) => {
   const handleChange = (e) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
-    setError('');
+    setError("");
   };
 
   const validatePassword = (password) => {
     if (password.length < 6) {
-      return 'Password must be at least 6 characters long';
+      return "Password must be at least 6 characters long";
     }
     if (!/(?=.*[a-z])/.test(password)) {
-      return 'Password must contain at least one lowercase letter';
+      return "Password must contain at least one lowercase letter";
     }
     if (!/(?=.*[A-Z])/.test(password)) {
-      return 'Password must contain at least one uppercase letter';
+      return "Password must contain at least one uppercase letter";
     }
     if (!/(?=.*\d)/.test(password)) {
-      return 'Password must contain at least one number';
+      return "Password must contain at least one number";
     }
     return null;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
     // Validate password
     const passwordError = validatePassword(formData.password);
@@ -81,7 +85,7 @@ const ResetPasswordPage = ({ onNavigate, token }) => {
 
     // Check if passwords match
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
+      setError("Passwords do not match");
       return;
     }
 
@@ -91,21 +95,18 @@ const ResetPasswordPage = ({ onNavigate, token }) => {
       const response = await authAPI.resetPassword({
         token,
         password: formData.password,
-        confirmPassword: formData.confirmPassword
+        confirmPassword: formData.confirmPassword,
       });
 
       if (response.success) {
         setSuccess(true);
         // Redirect to login after 3 seconds
         setTimeout(() => {
-          onNavigate('login');
+          navigate("/login");
         }, 3000);
       }
     } catch (err) {
-      setError(
-        err.message || 
-        'Failed to reset password. Please try again.'
-      );
+      setError(err.message || "Failed to reset password. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -133,24 +134,24 @@ const ResetPasswordPage = ({ onNavigate, token }) => {
               <div className="mx-auto w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mb-4">
                 <AlertCircle className="w-8 h-8 text-red-500" />
               </div>
-              
+
               <h2 className="text-2xl font-bold text-white mb-2">
                 Invalid Reset Link
               </h2>
-              
+
               <p className="text-slate-300 mb-6">
-                {error || 'This password reset link is invalid or has expired.'}
+                {error || "This password reset link is invalid or has expired."}
               </p>
 
               <button
-                onClick={() => onNavigate('forgot-password')}
+                onClick={() => navigate("/forgot-password")}
                 className="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200 mb-3"
               >
                 Request New Reset Link
               </button>
 
               <button
-                onClick={() => onNavigate('login')}
+                onClick={() => navigate("/login")}
                 className="w-full bg-dark-700 hover:bg-dark-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200"
               >
                 Back to Login
@@ -172,13 +173,14 @@ const ResetPasswordPage = ({ onNavigate, token }) => {
               <div className="mx-auto w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mb-4">
                 <CheckCircle className="w-8 h-8 text-green-500" />
               </div>
-              
+
               <h2 className="text-2xl font-bold text-white mb-2">
                 Password Reset Successful!
               </h2>
-              
+
               <p className="text-slate-300 mb-6">
-                Your password has been changed successfully. You can now log in with your new password.
+                Your password has been changed successfully. You can now log in
+                with your new password.
               </p>
 
               <div className="bg-primary-500/10 border border-primary-500/20 rounded-lg p-4 mb-6">
@@ -188,7 +190,7 @@ const ResetPasswordPage = ({ onNavigate, token }) => {
               </div>
 
               <button
-                onClick={() => onNavigate('login')}
+                onClick={() => navigate("/login")}
                 className="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200"
               >
                 Go to Login Now
@@ -214,7 +216,8 @@ const ResetPasswordPage = ({ onNavigate, token }) => {
               Reset Password
             </h2>
             <p className="text-slate-400">
-              Enter your new password for <span className="text-white font-medium">{userEmail}</span>
+              Enter your new password for{" "}
+              <span className="text-white font-medium">{userEmail}</span>
             </p>
           </div>
 
@@ -229,12 +232,15 @@ const ResetPasswordPage = ({ onNavigate, token }) => {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* New Password */}
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-slate-300 mb-2">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-slate-300 mb-2"
+              >
                 New Password
               </label>
               <div className="relative">
                 <input
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   id="password"
                   name="password"
                   value={formData.password}
@@ -249,22 +255,30 @@ const ResetPasswordPage = ({ onNavigate, token }) => {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-300 transition-colors"
                 >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  {showPassword ? (
+                    <EyeOff className="w-5 h-5" />
+                  ) : (
+                    <Eye className="w-5 h-5" />
+                  )}
                 </button>
               </div>
               <p className="mt-2 text-xs text-slate-400">
-                Must be at least 6 characters with uppercase, lowercase, and number
+                Must be at least 6 characters with uppercase, lowercase, and
+                number
               </p>
             </div>
 
             {/* Confirm Password */}
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-300 mb-2">
+              <label
+                htmlFor="confirmPassword"
+                className="block text-sm font-medium text-slate-300 mb-2"
+              >
                 Confirm New Password
               </label>
               <div className="relative">
                 <input
-                  type={showConfirmPassword ? 'text' : 'password'}
+                  type={showConfirmPassword ? "text" : "password"}
                   id="confirmPassword"
                   name="confirmPassword"
                   value={formData.confirmPassword}
@@ -279,7 +293,11 @@ const ResetPasswordPage = ({ onNavigate, token }) => {
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-300 transition-colors"
                 >
-                  {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  {showConfirmPassword ? (
+                    <EyeOff className="w-5 h-5" />
+                  ) : (
+                    <Eye className="w-5 h-5" />
+                  )}
                 </button>
               </div>
             </div>
@@ -295,7 +313,7 @@ const ResetPasswordPage = ({ onNavigate, token }) => {
                   Resetting Password...
                 </>
               ) : (
-                'Reset Password'
+                "Reset Password"
               )}
             </button>
           </form>
@@ -303,7 +321,7 @@ const ResetPasswordPage = ({ onNavigate, token }) => {
           {/* Back to Login */}
           <div className="mt-6 text-center">
             <button
-              onClick={() => onNavigate('login')}
+              onClick={() => navigate("/login")}
               className="text-primary-400 hover:text-primary-300 transition-colors text-sm"
             >
               Back to Login

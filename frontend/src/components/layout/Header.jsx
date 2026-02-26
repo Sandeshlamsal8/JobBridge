@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import NotificationCenter from "../NotificationCenter";
 
-function Header({ onNavigate, onLogout }) {
-  const { user, avatarUpdateCounter } = useAuth();
+function Header({ onLogout }) {
+  const { user, avatarUpdateCounter, logout } = useAuth();
+  const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
@@ -75,7 +77,43 @@ function Header({ onNavigate, onLogout }) {
   const handleNavigation = (path) => {
     setIsMenuOpen(false);
     setIsUserMenuOpen(false);
-    onNavigate && onNavigate(path);
+
+    // If clicking home and user is logged in, go to their dashboard
+    if (path === "home" && user) {
+      if (user.userType === "employer") {
+        navigate("/employer/dashboard");
+        return;
+      } else if (user.userType === "jobseeker") {
+        navigate("/jobseeker/dashboard");
+        return;
+      }
+    }
+
+    // Map old paths to new routes
+    const routeMap = {
+      home: "/",
+      login: "/login",
+      signup: "/signup",
+      messages: "/messages",
+      "my-applications": "/jobseeker/my-applications",
+      "saved-jobs": "/jobseeker/saved-jobs",
+      "post-job": "/employer/post-job",
+      "profile-settings": "/profile-settings",
+      "account-settings": "/account-settings",
+    };
+
+    navigate(routeMap[path] || path);
+  };
+
+  const handleLogout = async () => {
+    setIsMenuOpen(false);
+    setIsUserMenuOpen(false);
+    if (onLogout) {
+      await onLogout();
+    } else {
+      await logout();
+      navigate("/");
+    }
   };
 
   return (
@@ -261,7 +299,7 @@ function Header({ onNavigate, onLogout }) {
                       </button>
                       <div className="my-1 border-t border-dark-700"></div>
                       <button
-                        onClick={onLogout}
+                        onClick={handleLogout}
                         className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-400/10 hover:text-red-300 transition-colors flex items-center gap-2"
                       >
                         <svg
@@ -380,10 +418,7 @@ function Header({ onNavigate, onLogout }) {
                       Profile Settings
                     </button>
                     <button
-                      onClick={() => {
-                        setIsMenuOpen(false);
-                        onLogout();
-                      }}
+                      onClick={handleLogout}
                       className="w-full text-left px-4 py-2.5 text-sm font-medium text-red-400 hover:text-red-300 hover:bg-red-400/10 rounded-lg transition-all"
                     >
                       Logout
@@ -415,7 +450,6 @@ function Header({ onNavigate, onLogout }) {
       <NotificationCenter
         isOpen={isNotificationOpen}
         onClose={() => setIsNotificationOpen(false)}
-        onNavigate={onNavigate}
       />
     </header>
   );
