@@ -23,7 +23,10 @@ function CompanyProfilePage() {
   const handleBackNavigation = () => {
     // Smart back navigation based on referrer or user type
     if (referrer) {
-      if (referrer.startsWith("job-details/")) {
+      if (
+        referrer.startsWith("/job-details/") ||
+        referrer.startsWith("job-details/")
+      ) {
         // Navigate back to the specific job details page
         navigate(referrer);
       } else {

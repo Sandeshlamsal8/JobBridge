@@ -98,7 +98,7 @@ function MyApplicationsPage() {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
 
       const data = await response.json();
@@ -107,8 +107,8 @@ function MyApplicationsPage() {
         // Update the application status locally
         setApplications((prev) =>
           prev.map((app) =>
-            app._id === applicationId ? { ...app, status: "withdrawn" } : app
-          )
+            app._id === applicationId ? { ...app, status: "withdrawn" } : app,
+          ),
         );
         showSuccess("Application withdrawn successfully");
       } else {
@@ -206,13 +206,35 @@ function MyApplicationsPage() {
                         <h3 className="text-xl font-bold text-slate-100 mb-1">
                           {application.job?.title}
                         </h3>
-                        <p className="text-slate-400">
-                          {application.job?.companyName}
-                        </p>
+                        {application.job?.company ? (
+                          <button
+                            onClick={() => {
+                              const companyId =
+                                typeof application.job.company === "string"
+                                  ? application.job.company
+                                  : application.job.company._id;
+                              navigate(
+                                `/jobseeker/company-profile/${companyId}`,
+                                {
+                                  state: {
+                                    referrer: "/jobseeker/my-applications",
+                                  },
+                                },
+                              );
+                            }}
+                            className="text-primary-400 hover:text-primary-300 hover:underline transition-colors text-left"
+                          >
+                            {application.job?.companyName}
+                          </button>
+                        ) : (
+                          <p className="text-slate-400">
+                            {application.job?.companyName}
+                          </p>
+                        )}
                       </div>
                       <span
                         className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(
-                          application.status
+                          application.status,
                         )}`}
                       >
                         {getStatusLabel(application.status)}

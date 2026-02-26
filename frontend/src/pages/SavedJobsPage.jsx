@@ -40,7 +40,7 @@ function SavedJobsPage() {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
 
       const data = await response.json();
@@ -65,7 +65,7 @@ function SavedJobsPage() {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
 
       const data = await response.json();
@@ -87,7 +87,7 @@ function SavedJobsPage() {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
 
       if (response.ok) {
@@ -115,7 +115,7 @@ function SavedJobsPage() {
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({ status: newStatus }),
-        }
+        },
       );
 
       if (response.ok) {
@@ -303,9 +303,28 @@ function SavedJobsPage() {
                     <h3 className="text-xl font-bold text-slate-100 mb-2 hover:text-primary-400 transition-colors cursor-pointer">
                       {savedJob.job.title}
                     </h3>
-                    <p className="text-primary-400 font-semibold mb-2">
-                      {savedJob.job.companyName}
-                    </p>
+                    {savedJob.job.company ? (
+                      <button
+                        onClick={() => {
+                          const companyId =
+                            typeof savedJob.job.company === "string"
+                              ? savedJob.job.company
+                              : savedJob.job.company._id;
+                          navigate(`/jobseeker/company-profile/${companyId}`, {
+                            state: {
+                              referrer: "/jobseeker/saved-jobs",
+                            },
+                          });
+                        }}
+                        className="text-primary-400 font-semibold mb-2 hover:text-primary-300 hover:underline transition-colors text-left"
+                      >
+                        {savedJob.job.companyName}
+                      </button>
+                    ) : (
+                      <p className="text-primary-400 font-semibold mb-2">
+                        {savedJob.job.companyName}
+                      </p>
+                    )}
                     <div className="flex flex-wrap items-center gap-2 text-sm text-slate-400 mb-3">
                       <span className="flex items-center gap-1">
                         <svg
@@ -342,14 +361,14 @@ function SavedJobsPage() {
                   <div className="flex flex-col gap-2 items-end">
                     <span
                       className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(
-                        savedJob.priority
+                        savedJob.priority,
                       )}`}
                     >
                       {savedJob.priority} priority
                     </span>
                     <span
                       className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                        savedJob.status
+                        savedJob.status,
                       )}`}
                     >
                       {savedJob.status.replace("_", " ")}
