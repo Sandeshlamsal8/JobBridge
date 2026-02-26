@@ -32,6 +32,7 @@ app.use("/api/saved-jobs", require("./routes/savedJobs"));
 app.use("/api/profile-views", require("./routes/profileViews"));
 app.use("/api/location", require("./routes/location"));
 app.use("/api/ai-matching", require("./routes/ai-matching/ranking"));
+app.use("/api/messaging", require("./routes/messaging")); // Merged messaging routes (conversations, messages, attachments)
 
 // Health check route
 app.get("/api/health", (req, res) => {
@@ -64,6 +65,14 @@ mongoose
   .connect(process.env.MONGODB_URI)
   .then(() => {
     console.log("✅ Connected to MongoDB");
+
+    // Initialize GridFS for file storage
+    const { initializeGridFS } = require("./utils/gridfs");
+    try {
+      initializeGridFS();
+    } catch (error) {
+      console.error("⚠️  GridFS initialization failed:", error.message);
+    }
 
     // Initialize AI service (preload models)
     const aiService = require("./ai-service");

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { showToast } from "./ToastContainer";
 
-function NotificationCenter({ isOpen, onClose }) {
+function NotificationCenter({ isOpen, onClose, onNavigate }) {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -34,7 +34,7 @@ function NotificationCenter({ isOpen, onClose }) {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
 
       const data = await response.json();
@@ -57,7 +57,7 @@ function NotificationCenter({ isOpen, onClose }) {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
 
       const data = await response.json();
@@ -79,7 +79,7 @@ function NotificationCenter({ isOpen, onClose }) {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
 
       if (response.ok) {
@@ -87,8 +87,8 @@ function NotificationCenter({ isOpen, onClose }) {
           prev.map((notif) =>
             notif._id === notificationId
               ? { ...notif, status: "read", readAt: new Date() }
-              : notif
-          )
+              : notif,
+          ),
         );
         setUnreadCount((prev) => Math.max(0, prev - 1));
       }
@@ -107,7 +107,7 @@ function NotificationCenter({ isOpen, onClose }) {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
 
       if (response.ok) {
@@ -116,7 +116,7 @@ function NotificationCenter({ isOpen, onClose }) {
             ...notif,
             status: "read",
             readAt: new Date(),
-          }))
+          })),
         );
         setUnreadCount(0);
         showToast("All notifications marked as read", "success");
@@ -138,12 +138,12 @@ function NotificationCenter({ isOpen, onClose }) {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
 
       if (response.ok) {
         setNotifications((prev) =>
-          prev.filter((notif) => notif._id !== notificationId)
+          prev.filter((notif) => notif._id !== notificationId),
         );
         if (
           notifications.find((n) => n._id === notificationId)?.status ===
@@ -163,9 +163,11 @@ function NotificationCenter({ isOpen, onClose }) {
       markAsRead(notification._id);
     }
 
-    if (notification.actionUrl) {
-      // Navigate to the action URL
-      window.location.href = notification.actionUrl;
+    if (notification.actionUrl && onNavigate) {
+      // Close the notification panel
+      onClose();
+      // Navigate using the app's navigation function
+      onNavigate(notification.actionUrl);
     }
   };
 
@@ -395,10 +397,10 @@ function NotificationCenter({ isOpen, onClose }) {
                               notification.priority === "urgent"
                                 ? "bg-red-400"
                                 : notification.priority === "high"
-                                ? "bg-orange-400"
-                                : notification.priority === "medium"
-                                ? "bg-blue-400"
-                                : "bg-slate-500"
+                                  ? "bg-orange-400"
+                                  : notification.priority === "medium"
+                                    ? "bg-blue-400"
+                                    : "bg-slate-500"
                             }`}
                           ></div>
                           <button

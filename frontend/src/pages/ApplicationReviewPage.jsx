@@ -365,6 +365,53 @@ function ApplicationReviewPage({ onNavigate, applicationId }) {
               >
                 View Full Profile
               </button>
+              <button
+                onClick={async () => {
+                  try {
+                    const token = sessionStorage.getItem("jobbridge_token");
+                    const response = await fetch(
+                      `${import.meta.env.VITE_API_URL}/messaging/conversations`,
+                      {
+                        method: "POST",
+                        headers: {
+                          "Content-Type": "application/json",
+                          Authorization: `Bearer ${token}`,
+                        },
+                        body: JSON.stringify({
+                          applicationId: application._id,
+                        }),
+                      },
+                    );
+                    const data = await response.json();
+                    if (data.success) {
+                      onNavigate(`messages/${data.data.conversation._id}`);
+                    } else {
+                      showError(
+                        data.message || "Failed to create conversation",
+                      );
+                    }
+                  } catch (error) {
+                    console.error("Error creating conversation:", error);
+                    showError("Failed to start conversation");
+                  }
+                }}
+                className="btn-primary px-4 py-2 text-sm flex items-center justify-center gap-2"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                  />
+                </svg>
+                Send Message
+              </button>
             </div>
           </div>
         </div>

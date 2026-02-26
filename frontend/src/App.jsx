@@ -24,6 +24,7 @@ import CompanyProfilePage from "./pages/CompanyProfilePage";
 import ApplicationReviewPage from "./pages/ApplicationReviewPage";
 import CandidateRankingPage from "./pages/CandidateRankingPage";
 import JobDetailsPage from "./pages/JobDetailsPage";
+import MessageCenterPage from "./pages/MessageCenterPage";
 
 function AppContent() {
   const { user, isAuthenticated, isLoading, verifyEmail } = useAuth();
@@ -156,6 +157,12 @@ function AppContent() {
       // Common Routes
       case "contact":
         return <ContactPage onNavigate={handleNavigate} />;
+      case "messages":
+        return isAuthenticated ? (
+          <MessageCenterPage onNavigate={handleNavigate} />
+        ) : (
+          <HomePage onNavigate={handleNavigate} />
+        );
       case "profile-settings":
         return isAuthenticated ? (
           <ProfileSettings onNavigate={handleNavigate} />
@@ -224,6 +231,19 @@ function AppContent() {
         if (currentPage.startsWith("job-details/")) {
           const jobId = currentPage.split("/")[1];
           return <JobDetailsPage onNavigate={handleNavigate} jobId={jobId} />;
+        }
+
+        // Dynamic Routes - Messages with conversation ID
+        if (currentPage.startsWith("messages/")) {
+          const conversationId = currentPage.split("/")[1];
+          return isAuthenticated ? (
+            <MessageCenterPage
+              onNavigate={handleNavigate}
+              conversationId={conversationId}
+            />
+          ) : (
+            <HomePage onNavigate={handleNavigate} />
+          );
         }
 
         // Dynamic Routes - Edit Job

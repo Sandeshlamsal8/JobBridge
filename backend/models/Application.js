@@ -257,6 +257,11 @@ const applicationSchema = new mongoose.Schema(
       type: String,
       maxlength: [500, "Rejection feedback cannot exceed 500 characters"],
     },
+    conversationId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Conversation",
+      default: null,
+    },
   },
   {
     timestamps: true,

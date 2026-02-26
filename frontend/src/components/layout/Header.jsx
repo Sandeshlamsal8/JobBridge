@@ -28,7 +28,7 @@ function Header({ onNavigate, onLogout }) {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
 
       const data = await response.json();
@@ -54,9 +54,18 @@ function Header({ onNavigate, onLogout }) {
           label: "Saved Jobs",
           onClick: () => handleNavigation("saved-jobs"),
         },
+        {
+          label: "Messages",
+          onClick: () => handleNavigation("messages"),
+        },
       ];
     } else if (user.userType === "employer") {
-      return [];
+      return [
+        {
+          label: "Messages",
+          onClick: () => handleNavigation("messages"),
+        },
+      ];
     }
     return [];
   };
@@ -406,6 +415,7 @@ function Header({ onNavigate, onLogout }) {
       <NotificationCenter
         isOpen={isNotificationOpen}
         onClose={() => setIsNotificationOpen(false)}
+        onNavigate={onNavigate}
       />
     </header>
   );

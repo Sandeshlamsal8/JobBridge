@@ -312,10 +312,96 @@ export const authUtils = {
   },
 };
 
+// Conversation API functions
+export const conversationAPI = {
+  // Create a new conversation for an application
+  createConversation: async (applicationId) => {
+    return await apiRequest("/conversations", {
+      method: "POST",
+      body: JSON.stringify({ applicationId }),
+    });
+  },
+
+  // Get all conversations for the current user
+  getConversations: async (filters = {}) => {
+    const queryParams = new URLSearchParams(filters).toString();
+    return await apiRequest(
+      `/conversations${queryParams ? `?${queryParams}` : ""}`,
+    );
+  },
+
+  // Get a specific conversation
+  getConversation: async (conversationId) => {
+    return await apiRequest(`/conversations/${conversationId}`);
+  },
+
+  // Archive a conversation
+  archiveConversation: async (conversationId) => {
+    return await apiRequest(`/conversations/${conversationId}/archive`, {
+      method: "PUT",
+    });
+  },
+
+  // Unarchive a conversation
+  unarchiveConversation: async (conversationId) => {
+    return await apiRequest(`/conversations/${conversationId}/unarchive`, {
+      method: "PUT",
+    });
+  },
+};
+
+// Message API functions
+export const messageAPI = {
+  // Get messages for a conversation
+  getMessages: async (conversationId, params = {}) => {
+    const queryParams = new URLSearchParams(params).toString();
+    return await apiRequest(
+      `/conversations/${conversationId}/messages${queryParams ? `?${queryParams}` : ""}`,
+    );
+  },
+
+  // Send a message (fallback for WebSocket)
+  sendMessage: async (conversationId, messageData) => {
+    return await apiRequest(`/conversations/${conversationId}/messages`, {
+      method: "POST",
+      body: JSON.stringify(messageData),
+    });
+  },
+
+  // Search messages
+  searchMessages: async (query) => {
+    return await apiRequest(`/messages/search?q=${encodeURIComponent(query)}`);
+  },
+};
+
+// Attachment API functions
+export const attachmentAPI = {
+  // Upload an attachment
+  uploadAttachment: async (file, conversationId) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("conversationId", conversationId);
+
+    return await apiRequest("/attachments", {
+      method: "POST",
+      headers: {}, // Let browser set Content-Type for FormData
+      body: formData,
+    });
+  },
+
+  // Get allowed file types
+  getAllowedFileTypes: async () => {
+    return await apiRequest("/attachments/types/allowed");
+  },
+};
+
 export default {
   authAPI,
   userAPI,
   jobAPI,
   applicationAPI,
+  conversationAPI,
+  messageAPI,
+  attachmentAPI,
   authUtils,
 };
