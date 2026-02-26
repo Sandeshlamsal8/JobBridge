@@ -107,6 +107,17 @@ const requireAnyUserType = (userTypes) => {
   };
 };
 
+// Middleware to check if user is admin
+const requireAdmin = (req, res, next) => {
+  if (req.user.userType !== "admin") {
+    return res.status(403).json({
+      success: false,
+      message: "Access denied. Admin privileges required.",
+    });
+  }
+  next();
+};
+
 // Optional auth middleware - doesn't fail if no token provided
 const optionalAuth = async (req, res, next) => {
   try {
@@ -160,4 +171,5 @@ module.exports = {
   optionalAuth,
   requireUserType,
   requireAnyUserType,
+  requireAdmin,
 };

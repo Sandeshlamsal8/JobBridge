@@ -26,6 +26,29 @@ import ApplicationReviewPage from "./pages/ApplicationReviewPage";
 import CandidateRankingPage from "./pages/CandidateRankingPage";
 import JobDetailsPage from "./pages/JobDetailsPage";
 import MessageCenterPage from "./pages/MessageCenterPage";
+import AdminDashboard from "./pages/AdminDashboard";
+
+// Protected Route Component for Admin
+function AdminRoute({ children }) {
+  const { user, isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-dark-950 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin h-12 w-12 border-4 border-primary-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-slate-300 text-lg">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated || user?.userType !== "admin") {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+}
 
 // Protected Route Component for Employers
 function EmployerRoute({ children }) {
@@ -110,7 +133,9 @@ function GuestRoute({ children }) {
 
   if (isAuthenticated && user) {
     // Redirect to appropriate dashboard
-    if (user.userType === "employer") {
+    if (user.userType === "admin") {
+      return <Navigate to="/admin/dashboard" replace />;
+    } else if (user.userType === "employer") {
       return <Navigate to="/employer/dashboard" replace />;
     } else if (user.userType === "jobseeker") {
       return <Navigate to="/jobseeker/dashboard" replace />;
@@ -260,6 +285,16 @@ function AppContent() {
           <JobSeekerRoute>
             <CompanyProfilePage />
           </JobSeekerRoute>
+        }
+      />
+
+      {/* Admin Routes */}
+      <Route
+        path="/admin/dashboard"
+        element={
+          <AdminRoute>
+            <AdminDashboard />
+          </AdminRoute>
         }
       />
 

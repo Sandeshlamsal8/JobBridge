@@ -46,6 +46,13 @@ function Header({ onLogout }) {
   const getNavigationItems = () => {
     if (!user) {
       return [];
+    } else if (user.userType === "admin") {
+      return [
+        {
+          label: "Dashboard",
+          onClick: () => navigate("/admin/dashboard"),
+        },
+      ];
     } else if (user.userType === "jobseeker") {
       return [
         {
@@ -80,7 +87,10 @@ function Header({ onLogout }) {
 
     // If clicking home and user is logged in, go to their dashboard
     if (path === "home" && user) {
-      if (user.userType === "employer") {
+      if (user.userType === "admin") {
+        navigate("/admin/dashboard");
+        return;
+      } else if (user.userType === "employer") {
         navigate("/employer/dashboard");
         return;
       } else if (user.userType === "jobseeker") {
@@ -202,6 +212,13 @@ function Header({ onLogout }) {
                     </svg>
                     Post Job
                   </button>
+                )}
+
+                {/* Admin Badge */}
+                {user.userType === "admin" && (
+                  <span className="px-3 py-1 bg-red-500/20 text-red-400 text-xs font-semibold rounded-full border border-red-500/30">
+                    ADMIN
+                  </span>
                 )}
 
                 {/* User Menu */}

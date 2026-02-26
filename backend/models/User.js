@@ -34,7 +34,7 @@ const userSchema = new mongoose.Schema(
     },
     userType: {
       type: String,
-      enum: ["jobseeker", "employer"],
+      enum: ["jobseeker", "employer", "admin"],
       required: [true, "User type is required"],
       default: "jobseeker",
     },
@@ -245,7 +245,7 @@ const userSchema = new mongoose.Schema(
     timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
-  }
+  },
 );
 
 // Virtual for full name
@@ -256,9 +256,9 @@ userSchema.virtual("fullName").get(function () {
 // Virtual for avatar URL
 userSchema.virtual("avatarUrl").get(function () {
   if (this.profile?.avatar?.data) {
-    const timestamp = this.profile.avatar.uploadedAt ? 
-      new Date(this.profile.avatar.uploadedAt).getTime() : 
-      Date.now();
+    const timestamp = this.profile.avatar.uploadedAt
+      ? new Date(this.profile.avatar.uploadedAt).getTime()
+      : Date.now();
     return `/api/users/avatar/${this._id}?t=${timestamp}`;
   }
   return null;
@@ -332,13 +332,13 @@ userSchema.methods.updateLastLogin = function () {
 // Method to get user data for API responses (excludes avatar buffer)
 userSchema.methods.toProfileJSON = function () {
   const obj = this.toObject();
-  
+
   // Remove avatar buffer data
   if (obj.profile?.avatar) {
     const { data, ...avatarMeta } = obj.profile.avatar;
     obj.profile.avatar = this.avatarUrl; // Replace with URL
   }
-  
+
   return obj;
 };
 

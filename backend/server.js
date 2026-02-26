@@ -33,6 +33,8 @@ app.use("/api/profile-views", require("./routes/profileViews"));
 app.use("/api/location", require("./routes/location"));
 app.use("/api/ai-matching", require("./routes/ai-matching/ranking"));
 app.use("/api/messaging", require("./routes/messaging")); // Merged messaging routes (conversations, messages, attachments)
+app.use("/api/admin", require("./routes/admin")); // Admin routes
+app.use("/api/job-reports", require("./routes/jobReports")); // Job reports
 
 // Health check route
 app.get("/api/health", (req, res) => {
