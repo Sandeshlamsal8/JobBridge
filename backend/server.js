@@ -1,28 +1,36 @@
-const express = require("express");
-const mongoose = require("mongoose");
-const cors = require("cors");
 const dotenv = require("dotenv");
 
 dotenv.config();
 
+const express = require("express");
+const mongoose = require("mongoose");
+const cors = require("cors");
+const { loadEnv } = require("./config/env");
+const { initializeRedis, closeRedis } = require("./config/redis");
+
+const config = loadEnv();
 const app = express();
+let server;
+
+if (config.trustProxy !== false) app.set("trust proxy", config.trustProxy);
 
 app.use(
   cors({
-    origin:
-      process.env.NODE_ENV === "production"
-        ? "https://your-frontend-domain.com"
-        : ["http://localhost:5173", "http://localhost:5174"],
+    origin(requestOrigin, callback) {
+      if (!requestOrigin || config.corsOrigins.includes(requestOrigin)) {
+        return callback(null, true);
+      }
+      const error = new Error("Origin is not allowed by CORS");
+      error.statusCode = 403;
+      return callback(error);
+    },
     credentials: true,
   }),
 );
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
-
-// Serve static files (uploaded images)
 app.use("/uploads", express.static("uploads"));
 
-// Routes
 app.use("/api/auth", require("./routes/auth"));
 app.use("/api/users", require("./routes/users"));
 app.use("/api/jobs", require("./routes/jobs"));
@@ -32,79 +40,80 @@ app.use("/api/saved-jobs", require("./routes/savedJobs"));
 app.use("/api/profile-views", require("./routes/profileViews"));
 app.use("/api/location", require("./routes/location"));
 app.use("/api/ai-matching", require("./routes/ai-matching/ranking"));
-app.use("/api/messaging", require("./routes/messaging")); // Merged messaging routes (conversations, messages, attachments)
-app.use("/api/admin", require("./routes/admin")); // Admin routes
-app.use("/api/job-reports", require("./routes/jobReports")); // Job reports
+app.use("/api/messaging", require("./routes/messaging"));
+app.use("/api/admin", require("./routes/admin"));
+app.use("/api/job-reports", require("./routes/jobReports"));
 
-// Health check route
 app.get("/api/health", (req, res) => {
   res.json({
     message: "JobBridge API is running!",
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV,
+    environment: config.nodeEnv,
   });
 });
 
-// Error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({
-    message: "Something went wrong!",
-    error:
-      process.env.NODE_ENV === "development"
-        ? err.message
-        : "Internal server error",
+  console.error(err.stack || err.message);
+  res.status(err.statusCode || 500).json({
+    success: false,
+    message: err.statusCode ? err.message : "Something went wrong!",
+    error: config.nodeEnv === "development" ? err.message : undefined,
   });
 });
 
-// 404 handler
 app.use("*", (req, res) => {
   res.status(404).json({ message: "Route not found" });
 });
 
-// Connect to MongoDB
-mongoose
-  .connect(process.env.MONGODB_URI)
-  .then(() => {
-    console.log("✅ Connected to MongoDB");
+async function startServer() {
+  await mongoose.connect(config.mongoUri);
+  console.log("Connected to MongoDB");
 
-    // Initialize GridFS for file storage
-    const { initializeGridFS } = require("./utils/gridfs");
-    try {
-      initializeGridFS();
-    } catch (error) {
-      console.error("⚠️  GridFS initialization failed:", error.message);
-    }
+  const { initializeGridFS } = require("./utils/gridfs");
+  initializeGridFS();
 
-    // Initialize AI service (preload models)
-    const aiService = require("./ai-service");
-    aiService
-      .initialize()
-      .then(() => {
-        console.log("🤖 AI service initialized");
-      })
-      .catch((error) => {
-        console.error("⚠️  AI service initialization failed:", error.message);
-        console.log("   AI features will be initialized on first use");
-      });
+  try {
+    await initializeRedis(config.redisUrl);
+  } catch (error) {
+    if (config.production) throw error;
+    console.warn("Redis unavailable; development rate limits use memory");
+  }
 
-    // Start server
-    const PORT = process.env.PORT || 5000;
-    app.listen(PORT, () => {
-      console.log(`🚀 Server running on port ${PORT}`);
-      console.log(`📍 API URL: http://localhost:${PORT}/api`);
-      console.log(`🏥 Health check: http://localhost:${PORT}/api/health`);
-    });
-  })
-  .catch((error) => {
-    console.error("❌ MongoDB connection error:", error);
-    process.exit(1);
+  if (config.clamav.required) {
+    const AttachmentService = require("./services/attachmentService");
+    await AttachmentService.verifyScanner();
+  }
+
+  require("./ai-service")
+    .initialize()
+    .catch((error) => console.warn("AI service lazy initialization:", error.message));
+
+  server = app.listen(config.port, () => {
+    console.log(`Server running on port ${config.port}`);
   });
+  return server;
+}
 
-// Handle unhandled promise rejections
-process.on("unhandledRejection", (err, promise) => {
-  console.log("❌ Unhandled Promise Rejection:", err.message);
-  process.exit(1);
-});
+async function shutdown(exitCode = 0) {
+  if (server) await new Promise((resolve) => server.close(resolve));
+  await closeRedis().catch(() => {});
+  await mongoose.disconnect().catch(() => {});
+  if (require.main === module) process.exit(exitCode);
+}
+
+if (require.main === module) {
+  startServer().catch((error) => {
+    console.error("Server startup failed:", error.message);
+    shutdown(1);
+  });
+  process.once("SIGTERM", () => shutdown(0));
+  process.once("SIGINT", () => shutdown(0));
+  process.once("unhandledRejection", (error) => {
+    console.error("Unhandled promise rejection:", error.message);
+    shutdown(1);
+  });
+}
 
 module.exports = app;
+module.exports.startServer = startServer;
+module.exports.shutdown = shutdown;

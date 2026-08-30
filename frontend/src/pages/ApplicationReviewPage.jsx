@@ -5,6 +5,7 @@ import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 import Toast from "../components/ui/Toast";
 import { useToast } from "../hooks/useToast";
+import { API_URL, backendUrl } from "../utils/config";
 
 function ApplicationReviewPage() {
   const { applicationId } = useParams();
@@ -38,9 +39,7 @@ function ApplicationReviewPage() {
 
     try {
       const token = sessionStorage.getItem("jobbridge_token");
-      const apiUrl = `${
-        import.meta.env.VITE_API_URL || "http://localhost:5000/api"
-      }/applications/${applicationId}`;
+      const apiUrl = `${API_URL}/applications/${applicationId}`;
 
       const response = await fetch(apiUrl, {
         headers: {
@@ -831,12 +830,7 @@ function ApplicationReviewPage() {
                           </div>
                           <div className="flex gap-2">
                             <a
-                              href={`${
-                                import.meta.env.VITE_API_URL?.replace(
-                                  "/api",
-                                  "",
-                                ) || "http://localhost:5000"
-                              }/${doc.path.replace(/\\/g, "/")}`}
+                              href={backendUrl(doc.path.replace(/\\/g, "/"))}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="btn-primary px-3 py-1.5 text-xs flex items-center gap-1"

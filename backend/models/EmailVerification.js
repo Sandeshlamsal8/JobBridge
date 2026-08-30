@@ -7,15 +7,15 @@ const emailVerificationSchema = new mongoose.Schema({
     lowercase: true,
     trim: true
   },
-  pin: {
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+    unique: true
+  },
+  pinHash: {
     type: String,
     required: true
-  },
-  userData: {
-    firstName: String,
-    lastName: String,
-    password: String,
-    userType: String
   },
   expiresAt: {
     type: Date,
@@ -25,10 +25,6 @@ const emailVerificationSchema = new mongoose.Schema({
   attempts: {
     type: Number,
     default: 0
-  },
-  verified: {
-    type: Boolean,
-    default: false
   }
 }, {
   timestamps: true

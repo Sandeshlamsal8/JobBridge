@@ -79,7 +79,7 @@ function JobListingsPage() {
       } else {
         setError(data.message || "Failed to fetch jobs");
       }
-    } catch (error) {
+    } catch {
       setError("Network error. Please try again.");
     } finally {
       setLoading(false);

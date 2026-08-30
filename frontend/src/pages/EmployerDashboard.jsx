@@ -6,6 +6,7 @@ import { isCompanyProfileComplete } from "../utils/companyProfile";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 import CompanySetupModal from "../components/CompanySetupModal";
+import { backendUrl } from "../utils/config";
 
 function EmployerDashboard() {
   const { user, logout, updateUser } = useAuth();
@@ -636,7 +637,7 @@ function EmployerDashboard() {
                               <img
                                 src={
                                   application.avatar.startsWith("/api/")
-                                    ? `http://localhost:5000${application.avatar}`
+                                    ? backendUrl(application.avatar)
                                     : application.avatar
                                 }
                                 alt={application.candidateName}

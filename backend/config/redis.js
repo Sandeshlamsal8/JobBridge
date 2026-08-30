@@ -7,12 +7,10 @@ let redisClient = null;
  * Initialize Redis connection with connection pooling
  * @returns {Promise<RedisClient>} Connected Redis client
  */
-async function initializeRedis() {
+async function initializeRedis(redisUrl = process.env.REDIS_URL || "redis://localhost:6379") {
   if (redisClient) {
     return redisClient;
   }
-
-  const redisUrl = process.env.REDIS_URL || "redis://localhost:6379";
 
   redisClient = redis.createClient({
     url: redisUrl,

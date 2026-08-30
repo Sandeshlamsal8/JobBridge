@@ -1,5 +1,6 @@
 const multer = require("multer");
 const path = require("path");
+const { validateUploadedFile } = require("../utils/fileValidation");
 
 // Configure memory storage instead of disk storage
 const storage = multer.memoryStorage();
@@ -7,11 +8,12 @@ const storage = multer.memoryStorage();
 // File filter for CV uploads
 const fileFilter = (req, file, cb) => {
   // Allow only PDF and Word documents for CV
-  if (file.fieldname === "cv") {
+  if (file.fieldname === "cv" || file.fieldname === "file") {
     const allowedTypes = [
       "application/pdf",
       "application/msword",
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      ...(file.fieldname === "file" ? ["image/jpeg", "image/png"] : []),
     ];
 
     if (allowedTypes.includes(file.mimetype)) {
@@ -59,4 +61,14 @@ const upload = multer({
   fileFilter: fileFilter,
 });
 
+function validateFileContent(req, res, next) {
+  try {
+    if (req.file) validateUploadedFile(req.file);
+    next();
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = upload;
+module.exports.validateFileContent = validateFileContent;

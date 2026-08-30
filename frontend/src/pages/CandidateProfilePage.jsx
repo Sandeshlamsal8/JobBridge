@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
+import { backendUrl } from "../utils/config";
 
 function CandidateProfilePage() {
   const { candidateId } = useParams();
@@ -167,7 +168,7 @@ function CandidateProfilePage() {
             <div className="relative">
               {basicProfile.avatar ? (
                 <img
-                  src={`http://localhost:5000${basicProfile.avatar}`}
+                  src={backendUrl(basicProfile.avatar)}
                   alt={`${candidate.firstName} ${candidate.lastName}`}
                   className="w-24 h-24 rounded-full object-cover border-2 border-primary-500/30"
                 />

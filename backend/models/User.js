@@ -240,6 +240,10 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    tokenVersion: {
+      type: Number,
+      default: 0,
+    },
   },
   {
     timestamps: true,
@@ -333,9 +337,13 @@ userSchema.methods.updateLastLogin = function () {
 userSchema.methods.toProfileJSON = function () {
   const obj = this.toObject();
 
+  delete obj.password;
+  delete obj.loginAttempts;
+  delete obj.lockUntil;
+  delete obj.tokenVersion;
+
   // Remove avatar buffer data
   if (obj.profile?.avatar) {
-    const { data, ...avatarMeta } = obj.profile.avatar;
     obj.profile.avatar = this.avatarUrl; // Replace with URL
   }
 

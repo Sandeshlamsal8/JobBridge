@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import NotificationCenter from "../NotificationCenter";
+import { backendUrl } from "../../utils/config";
 
 function Header({ onLogout }) {
   const { user, avatarUpdateCounter, logout } = useAuth();
@@ -231,7 +232,7 @@ function Header({ onLogout }) {
                       {user.profile?.avatar ? (
                         <img
                           key={`${user.profile.avatar}-${avatarUpdateCounter}`} // Force re-render on URL change
-                          src={`http://localhost:5000${user.profile.avatar}`}
+                          src={backendUrl(user.profile.avatar)}
                           alt="Profile"
                           className="w-full h-full object-cover"
                         />
@@ -408,7 +409,7 @@ function Header({ onLogout }) {
                         {user.profile?.avatar ? (
                           <img
                             key={`${user.profile.avatar}-${avatarUpdateCounter}`} // Force re-render on URL change
-                            src={`http://localhost:5000${user.profile.avatar}`}
+                            src={backendUrl(user.profile.avatar)}
                             alt="Profile"
                             className="w-full h-full object-cover"
                           />

@@ -7,6 +7,7 @@ import Footer from "../components/layout/Footer";
 import LocationAutocomplete from "../components/LocationAutocomplete";
 import SearchableCategories from "../components/SearchableCategories";
 import { useProfileCompletion } from "../hooks/useProfileCompletion";
+import { backendUrl } from "../utils/config";
 
 function ProfileSettings() {
   const { user, logout, updateUser } = useAuth();
@@ -635,7 +636,7 @@ function ProfileSettings() {
                         src={
                           imagePreview ||
                           (basicInfo.avatar
-                            ? `http://localhost:5000${basicInfo.avatar}`
+                            ? backendUrl(basicInfo.avatar)
                             : "/placeholder-user.jpg")
                         }
                         alt="Profile"

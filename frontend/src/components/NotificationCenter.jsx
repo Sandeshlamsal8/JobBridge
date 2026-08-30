@@ -1,10 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../contexts/AuthContext";
 import { showToast } from "./ToastContainer";
 
 function NotificationCenter({ isOpen, onClose }) {
-  const { user } = useAuth();
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -206,16 +204,6 @@ function NotificationCenter({ isOpen, onClose }) {
       account_security: "🔒",
     };
     return icons[type] || "🔔";
-  };
-
-  const getPriorityColor = (priority) => {
-    const colors = {
-      low: "text-slate-400",
-      medium: "text-blue-400",
-      high: "text-orange-400",
-      urgent: "text-red-400",
-    };
-    return colors[priority] || "text-slate-400";
   };
 
   if (!isOpen) return null;

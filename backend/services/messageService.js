@@ -232,11 +232,7 @@ class MessageService {
         data: {
           conversationId: conversation._id,
           messageId: message._id,
-          metadata: {
-            preview:
-              content.trim().substring(0, 50) +
-              (content.trim().length > 50 ? "..." : ""),
-          },
+          metadata: {},
         },
         priority: "medium",
         actionUrl: `messages/${conversation._id}`,

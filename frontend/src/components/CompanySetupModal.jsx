@@ -2,7 +2,7 @@ import { useState } from "react";
 import { showToast } from "./ToastContainer";
 import LocationAutocomplete from "./LocationAutocomplete";
 
-function CompanySetupModal({ isOpen, onClose, onComplete, user }) {
+function CompanySetupModal({ isOpen, onClose, onComplete }) {
   const [isLoading, setIsLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [companyData, setCompanyData] = useState({

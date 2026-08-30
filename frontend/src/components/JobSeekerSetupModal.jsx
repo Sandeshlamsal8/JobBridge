@@ -3,7 +3,7 @@ import { showToast } from "./ToastContainer";
 import LocationAutocomplete from "./LocationAutocomplete";
 import SearchableCategories from "./SearchableCategories";
 
-function JobSeekerSetupModal({ isOpen, onClose, onComplete, user }) {
+function JobSeekerSetupModal({ isOpen, onClose, onComplete }) {
   const [isLoading, setIsLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [profileData, setProfileData] = useState({

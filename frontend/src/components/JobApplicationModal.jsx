@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { useAuth } from "../contexts/AuthContext";
+import { API_URL } from "../utils/config";
 import { showToast } from "./ToastContainer";
 
 function JobApplicationModal({ job, isOpen, onClose, onSuccess }) {
-  const { user } = useAuth();
   const [formData, setFormData] = useState({
     coverLetter: "",
     expectedSalary: {
@@ -119,7 +118,7 @@ function JobApplicationModal({ job, isOpen, onClose, onSuccess }) {
       }
 
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL || "http://localhost:5000/api"}/applications`,
+        `${API_URL}/applications`,
         {
           method: "POST",
           headers: {

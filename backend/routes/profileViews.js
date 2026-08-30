@@ -2,7 +2,7 @@ const express = require("express");
 const { body, validationResult } = require("express-validator");
 const ProfileView = require("../models/ProfileView");
 const User = require("../models/User");
-const { auth, requireAnyUserType } = require("../middleware/auth");
+const { auth, optionalAuth, requireAnyUserType } = require("../middleware/auth");
 const NotificationService = require("../services/notificationService");
 
 const router = express.Router();
@@ -12,6 +12,7 @@ const router = express.Router();
 // @access  Public (can be anonymous)
 router.post(
   "/",
+  optionalAuth,
   [
     body("profileOwnerId").isMongoId().withMessage("Invalid profile owner ID"),
     body("viewerType")
@@ -59,18 +60,7 @@ router.post(
       }
 
       // Get viewer ID from auth if available
-      let viewerId = null;
-      if (req.headers.authorization) {
-        try {
-          const jwt = require("jsonwebtoken");
-          const token = req.headers.authorization.replace("Bearer ", "");
-          const decoded = jwt.verify(token, process.env.JWT_SECRET);
-          viewerId = decoded.userId;
-        } catch (error) {
-          // Invalid token, treat as anonymous
-          viewerId = null;
-        }
-      }
+      const viewerId = req.user?.userId || null;
 
       // Get IP and user agent for anonymous tracking
       const ipAddress = req.ip || req.connection.remoteAddress;

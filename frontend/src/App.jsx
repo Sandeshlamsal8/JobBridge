@@ -1,5 +1,4 @@
-import { useEffect } from "react";
-import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import ToastContainer from "./components/ToastContainer";
 import HomePage from "./pages/HomePage";
@@ -146,8 +145,7 @@ function GuestRoute({ children }) {
 }
 
 function AppContent() {
-  const { user, isAuthenticated, isLoading } = useAuth();
-  const navigate = useNavigate();
+  const { isLoading } = useAuth();
 
   // Show loading screen while checking authentication
   if (isLoading) {

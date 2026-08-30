@@ -3,6 +3,8 @@ const { uploadFile, downloadFile, deleteFile } = require("../utils/gridfs");
 const path = require("path");
 const crypto = require("crypto");
 const NodeClam = require("clamscan");
+const { validateUploadedFile } = require("../utils/fileValidation");
+const { scanBufferSafely } = require("../utils/malwareScan");
 
 // Allowed file types with their MIME types
 const ALLOWED_FILE_TYPES = {
@@ -15,8 +17,8 @@ const ALLOWED_FILE_TYPES = {
   "image/png": [".png"],
 };
 
-// Maximum file size: 10MB in bytes
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10485760 bytes
+// Maximum file size: 5MB in bytes
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
 // ClamAV instance (initialized lazily)
 let clamavInstance = null;
@@ -75,7 +77,7 @@ class AttachmentService {
     if (file.size > MAX_FILE_SIZE) {
       return {
         isValid: false,
-        error: `File size exceeds maximum limit of 10MB. Your file is ${(file.size / (1024 * 1024)).toFixed(2)}MB`,
+        error: `File size exceeds maximum limit of 5MB. Your file is ${(file.size / (1024 * 1024)).toFixed(2)}MB`,
       };
     }
 
@@ -107,6 +109,12 @@ class AttachmentService {
         isValid: false,
         error: `File extension "${fileExtension}" does not match MIME type "${mimeType}". Expected extensions: ${allowedExtensions.join(", ")}`,
       };
+    }
+
+    try {
+      validateUploadedFile(file);
+    } catch (error) {
+      return { isValid: false, error: error.message };
     }
 
     return {
@@ -169,6 +177,8 @@ class AttachmentService {
         throw new Error(validation.error);
       }
 
+      const scanResult = await this.scanBuffer(file.buffer);
+
       // Sanitize filename
       const sanitizedFilename = this.sanitizeFilename(file.originalname);
 
@@ -189,7 +199,8 @@ class AttachmentService {
         fileType: file.mimetype,
         fileSize: file.size,
         gridFsFileId,
-        malwareScanStatus: "pending",
+        malwareScanStatus: scanResult.status === "clean" ? "clean" : "pending",
+        malwareScanDate: scanResult.status === "clean" ? new Date() : null,
       });
 
       return attachment;
@@ -446,6 +457,21 @@ class AttachmentService {
    */
   static _resetClamAVInstance() {
     resetClamAVInstance();
+  }
+
+  static async verifyScanner() {
+    await initClamAV();
+  }
+
+  static async scanBuffer(buffer) {
+    const required =
+      process.env.NODE_ENV === "production" ||
+      process.env.CLAMAV_REQUIRED === "true";
+    const result = await scanBufferSafely(initClamAV, buffer, required);
+    if (result.status === "skipped") {
+      console.warn("Malware scan skipped outside production");
+    }
+    return result;
   }
 }
 

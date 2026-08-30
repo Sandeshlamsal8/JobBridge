@@ -11,6 +11,7 @@ const {
   requireAnyUserType,
 } = require("../middleware/auth");
 const upload = require("../middleware/upload");
+const AttachmentService = require("../services/attachmentService");
 const aiService = require("../ai-service");
 
 const router = express.Router();
@@ -24,6 +25,7 @@ router.post(
     auth,
     requireUserType("jobseeker"),
     upload.single("cv"), // Handle CV file upload
+    upload.validateFileContent,
     body("jobId").isMongoId().withMessage("Invalid job ID"),
     body("coverLetter")
       .optional()
@@ -56,6 +58,8 @@ router.post(
           message: "CV file is required",
         });
       }
+
+      await AttachmentService.scanBuffer(req.file.buffer);
 
       const { jobId, coverLetter, expectedSalary, questionsAnswers } = req.body;
 

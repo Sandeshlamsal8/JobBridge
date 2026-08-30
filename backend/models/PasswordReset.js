@@ -7,7 +7,7 @@ const passwordResetSchema = new mongoose.Schema({
     lowercase: true,
     trim: true,
   },
-  token: {
+  tokenHash: {
     type: String,
     required: true,
     unique: true,
@@ -22,14 +22,6 @@ const passwordResetSchema = new mongoose.Schema({
     required: true,
     default: () => new Date(Date.now() + 60 * 60 * 1000), // 1 hour
   },
-  used: {
-    type: Boolean,
-    default: false,
-  },
-  attempts: {
-    type: Number,
-    default: 0,
-  },
   createdAt: {
     type: Date,
     default: Date.now,
@@ -38,7 +30,7 @@ const passwordResetSchema = new mongoose.Schema({
 });
 
 // Index for faster queries
-passwordResetSchema.index({ email: 1, used: 1 });
+passwordResetSchema.index({ email: 1 });
 passwordResetSchema.index({ expiresAt: 1 });
 
 module.exports = mongoose.model("PasswordReset", passwordResetSchema);

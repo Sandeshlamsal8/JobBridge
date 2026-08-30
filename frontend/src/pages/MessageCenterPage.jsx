@@ -18,7 +18,7 @@ function MessageCenterPage() {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [messageInput, setMessageInput] = useState("");
   const [sending, setSending] = useState(false);
-  const { toast, showSuccess, showError, hideToast } = useToast();
+  const { toast, showError, hideToast } = useToast();
   const markedAsReadRef = useRef(new Set()); // Track which conversations have been marked as read
   const textareaRef = useRef(null); // Reference to textarea for height reset
   const messagesContainerRef = useRef(null); // Reference to messages container for scrolling

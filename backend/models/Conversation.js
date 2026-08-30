@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { encryptMessage, decryptMessage } = require("../utils/messageCrypto");
 
 const conversationSchema = new mongoose.Schema(
   {
@@ -23,6 +24,8 @@ const conversationSchema = new mongoose.Schema(
       content: {
         type: String,
         default: null,
+        set: encryptMessage,
+        get: decryptMessage,
       },
       timestamp: {
         type: Date,
@@ -47,8 +50,8 @@ const conversationSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-    toJSON: { virtuals: true },
-    toObject: { virtuals: true },
+    toJSON: { virtuals: true, getters: true },
+    toObject: { virtuals: true, getters: true },
   },
 );
 

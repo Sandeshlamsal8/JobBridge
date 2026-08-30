@@ -14,7 +14,7 @@ function MyJobsPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [jobs, setJobs] = useState([]);
-  const { toast, showInfo, hideToast } = useToast();
+  const { toast, hideToast } = useToast();
   const [filter, setFilter] = useState("all");
   const [pagination, setPagination] = useState({
     currentPage: 1,

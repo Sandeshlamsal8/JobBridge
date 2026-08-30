@@ -122,7 +122,7 @@ function AccountSettings() {
           text: data.message || "Failed to change password",
         });
       }
-    } catch (error) {
+    } catch {
       setMessage({
         type: "error",
         text: "An error occurred. Please try again.",
@@ -187,7 +187,7 @@ function AccountSettings() {
           text: data.message || "Failed to delete account",
         });
       }
-    } catch (error) {
+    } catch {
       setMessage({
         type: "error",
         text: "An error occurred. Please try again.",
