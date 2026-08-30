@@ -1,719 +1,488 @@
-const express = require('express');
-const jwt = require('jsonwebtoken');
-const { body, validationResult } = require('express-validator');
-const User = require('../models/User');
-const EmailVerification = require('../models/EmailVerification');
-const PasswordReset = require('../models/PasswordReset');
-const { auth } = require('../middleware/auth');
-const { 
-  generatePIN, 
+const express = require("express");
+const jwt = require("jsonwebtoken");
+const { body, validationResult } = require("express-validator");
+const User = require("../models/User");
+const EmailVerification = require("../models/EmailVerification");
+const PasswordReset = require("../models/PasswordReset");
+const { auth } = require("../middleware/auth");
+const {
+  generatePIN,
   sendVerificationEmail,
   generateResetToken,
   sendPasswordResetEmail,
-  sendPasswordResetConfirmation
-} = require('../utils/emailService');
+  sendPasswordResetConfirmation,
+} = require("../utils/emailService");
+const {
+  hashResetToken,
+  hashPin,
+  comparePin,
+} = require("../utils/securityTokens");
+const { createRateLimiter } = require("../middleware/rateLimit");
 
 const router = express.Router();
+const emailKey = (req) =>
+  `${req.ip}:${String(req.body?.email || "").trim().toLowerCase()}`;
+const signupLimit = createRateLimiter({
+  name: "signup",
+  limit: 5,
+  windowSeconds: 15 * 60,
+  key: emailKey,
+});
+const loginLimit = createRateLimiter({
+  name: "login",
+  limit: 10,
+  windowSeconds: 15 * 60,
+  key: emailKey,
+});
+const verifyLimit = createRateLimiter({
+  name: "verify-email",
+  limit: 10,
+  windowSeconds: 15 * 60,
+  key: emailKey,
+});
+const resendLimit = createRateLimiter({
+  name: "resend-pin",
+  limit: 3,
+  windowSeconds: 60 * 60,
+  key: emailKey,
+});
+const forgotPasswordLimit = createRateLimiter({
+  name: "password-reset",
+  limit: 5,
+  windowSeconds: 60 * 60,
+  key: emailKey,
+});
+const resetPasswordLimit = createRateLimiter({
+  name: "password-reset",
+  limit: 5,
+  windowSeconds: 60 * 60,
+  key: (req) => req.ip,
+});
 
-// Generate JWT Token
-const generateToken = (userId) => {
-  return jwt.sign({ userId }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRE
+function generateToken(user) {
+  return jwt.sign(
+    {
+      userId: user._id,
+      tokenVersion: Number(user.tokenVersion || 0),
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: process.env.JWT_EXPIRE || "15m" },
+  );
+}
+
+function sendValidationErrors(req, res) {
+  const errors = validationResult(req);
+  if (errors.isEmpty()) return false;
+  res.status(400).json({
+    success: false,
+    message: "Validation failed",
+    errors: errors.array(),
   });
-};
+  return true;
+}
 
-// @route   POST /api/auth/signup
-// @desc    Send verification PIN to email (Step 1)
-// @access  Public
-router.post('/signup', [
-  body('firstName')
-    .trim()
-    .isLength({ min: 2, max: 50 })
-    .withMessage('First name must be between 2 and 50 characters'),
-  body('lastName')
-    .trim()
-    .isLength({ min: 2, max: 50 })
-    .withMessage('Last name must be between 2 and 50 characters'),
-  body('email')
-    .isEmail()
-    .normalizeEmail()
-    .withMessage('Please enter a valid email address'),
-  body('password')
-    .isLength({ min: 6 })
-    .withMessage('Password must be at least 6 characters long')
-    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
-    .withMessage('Password must contain at least one uppercase letter, one lowercase letter, and one number'),
-  body('confirmPassword')
-    .custom((value, { req }) => {
-      if (value !== req.body.password) {
-        throw new Error('Passwords do not match');
-      }
+const passwordRules = body("password")
+  .isLength({ min: 6 })
+  .withMessage("Password must be at least 6 characters long")
+  .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+  .withMessage(
+    "Password must contain at least one uppercase letter, one lowercase letter, and one number",
+  );
+
+router.post(
+  "/signup",
+  signupLimit,
+  [
+    body("firstName")
+      .trim()
+      .isLength({ min: 2, max: 50 })
+      .withMessage("First name must be between 2 and 50 characters"),
+    body("lastName")
+      .trim()
+      .isLength({ min: 2, max: 50 })
+      .withMessage("Last name must be between 2 and 50 characters"),
+    body("email").isEmail().normalizeEmail().withMessage("Please enter a valid email address"),
+    passwordRules,
+    body("confirmPassword").custom((value, { req }) => {
+      if (value !== req.body.password) throw new Error("Passwords do not match");
       return true;
     }),
-  body('userType')
-    .isIn(['jobseeker', 'employer'])
-    .withMessage('User type must be either jobseeker or employer'),
-  body('agreeToTerms')
-    .isBoolean()
-    .custom((value) => {
-      if (!value) {
-        throw new Error('You must agree to the terms and conditions');
-      }
+    body("userType")
+      .isIn(["jobseeker", "employer"])
+      .withMessage("User type must be either jobseeker or employer"),
+    body("agreeToTerms").custom((value) => {
+      if (value !== true) throw new Error("You must agree to the terms and conditions");
       return true;
-    })
-], async (req, res) => {
-  try {
-    // Check for validation errors
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array()
-      });
-    }
+    }),
+  ],
+  async (req, res) => {
+    try {
+      if (sendValidationErrors(req, res)) return;
+      const { firstName, lastName, email, password, userType } = req.body;
+      let user = await User.findOne({ email });
 
-    const { firstName, lastName, email, password, userType } = req.body;
-
-    // Check if user already exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({
-        success: false,
-        message: 'User already exists with this email address'
-      });
-    }
-
-    // Delete any existing verification for this email
-    await EmailVerification.deleteMany({ email });
-
-    // Generate PIN
-    const pin = generatePIN();
-
-    // Store verification data temporarily
-    const verification = new EmailVerification({
-      email,
-      pin,
-      userData: {
-        firstName,
-        lastName,
-        password,
-        userType
+      if (user?.isEmailVerified) {
+        return res.status(400).json({
+          success: false,
+          message: "User already exists with this email address",
+        });
       }
-    });
 
-    await verification.save();
+      if (user) {
+        user.firstName = firstName;
+        user.lastName = lastName;
+        user.password = password;
+        user.userType = userType;
+        user.isActive = true;
+      } else {
+        user = new User({
+          firstName,
+          lastName,
+          email,
+          password,
+          userType,
+          isEmailVerified: false,
+        });
+      }
+      await user.save();
 
-    // Send verification email
-    const emailResult = await sendVerificationEmail(email, pin, firstName);
-
-    if (!emailResult.success) {
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to send verification email. Please try again.'
+      const pin = generatePIN();
+      await EmailVerification.deleteMany({
+        $or: [{ email }, { userId: user._id }],
       });
-    }
-
-    res.status(200).json({
-      success: true,
-      message: 'Verification PIN sent to your email. Please check your inbox.',
-      data: {
+      await EmailVerification.create({
+        userId: user._id,
         email,
-        expiresIn: '15 minutes'
+        pinHash: await hashPin(pin),
+      });
+
+      const emailResult = await sendVerificationEmail(email, pin, firstName);
+      if (!emailResult.success) {
+        return res.status(500).json({
+          success: false,
+          message: "Failed to send verification email. Please try again.",
+        });
       }
-    });
 
-  } catch (error) {
-    console.error('Signup error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error during registration',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
-});
-
-// @route   POST /api/auth/verify-email
-// @desc    Verify PIN and complete registration (Step 2)
-// @access  Public
-router.post('/verify-email', [
-  body('email')
-    .isEmail()
-    .normalizeEmail()
-    .withMessage('Please enter a valid email address'),
-  body('pin')
-    .isLength({ min: 6, max: 6 })
-    .withMessage('PIN must be 6 digits')
-], async (req, res) => {
-  try {
-    // Check for validation errors
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array()
+      return res.json({
+        success: true,
+        message: "Verification PIN sent to your email. Please check your inbox.",
+        data: { email, expiresIn: "15 minutes" },
       });
-    }
-
-    const { email, pin } = req.body;
-
-    // Find verification record
-    const verification = await EmailVerification.findOne({ 
-      email,
-      verified: false
-    });
-
-    if (!verification) {
-      return res.status(400).json({
-        success: false,
-        message: 'Verification request not found or already used. Please sign up again.'
-      });
-    }
-
-    // Check if expired
-    if (verification.expiresAt < new Date()) {
-      await EmailVerification.deleteOne({ _id: verification._id });
-      return res.status(400).json({
-        success: false,
-        message: 'Verification PIN has expired. Please sign up again.'
-      });
-    }
-
-    // Check attempts
-    if (verification.attempts >= 5) {
-      await EmailVerification.deleteOne({ _id: verification._id });
-      return res.status(400).json({
-        success: false,
-        message: 'Too many failed attempts. Please sign up again.'
-      });
-    }
-
-    // Verify PIN
-    if (verification.pin !== pin) {
-      verification.attempts += 1;
-      await verification.save();
-      
-      return res.status(400).json({
-        success: false,
-        message: `Invalid PIN. ${5 - verification.attempts} attempts remaining.`
-      });
-    }
-
-    // PIN is correct - Create user
-    const { firstName, lastName, password, userType } = verification.userData;
-
-    const user = new User({
-      firstName,
-      lastName,
-      email,
-      password,
-      userType,
-      isEmailVerified: true
-    });
-
-    await user.save();
-
-    // Mark verification as used
-    verification.verified = true;
-    await verification.save();
-
-    // Generate JWT token
-    const token = generateToken(user._id);
-
-    res.status(201).json({
-      success: true,
-      message: 'Email verified successfully! Your account has been created.',
-      data: {
-        user: user.toProfileJSON(), // Use toProfileJSON to get avatar URL
-        token
-      }
-    });
-
-  } catch (error) {
-    console.error('Verification error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error during verification',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
-});
-
-// @route   POST /api/auth/resend-pin
-// @desc    Resend verification PIN
-// @access  Public
-router.post('/resend-pin', [
-  body('email')
-    .isEmail()
-    .normalizeEmail()
-    .withMessage('Please enter a valid email address')
-], async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array()
-      });
-    }
-
-    const { email } = req.body;
-
-    // Find existing verification
-    const verification = await EmailVerification.findOne({ 
-      email,
-      verified: false
-    });
-
-    if (!verification) {
-      return res.status(400).json({
-        success: false,
-        message: 'No pending verification found. Please sign up again.'
-      });
-    }
-
-    // Generate new PIN
-    const pin = generatePIN();
-    verification.pin = pin;
-    verification.expiresAt = new Date(Date.now() + 15 * 60 * 1000);
-    verification.attempts = 0;
-    await verification.save();
-
-    // Send new PIN
-    const emailResult = await sendVerificationEmail(
-      email, 
-      pin, 
-      verification.userData.firstName
-    );
-
-    if (!emailResult.success) {
+    } catch (error) {
+      console.error("Signup error:", error.message);
       return res.status(500).json({
         success: false,
-        message: 'Failed to send verification email. Please try again.'
+        message: "Server error during registration",
       });
     }
+  },
+);
 
-    res.json({
-      success: true,
-      message: 'New verification PIN sent to your email.'
-    });
+router.post(
+  "/verify-email",
+  verifyLimit,
+  [
+    body("email").isEmail().normalizeEmail().withMessage("Please enter a valid email address"),
+    body("pin").isLength({ min: 6, max: 6 }).isNumeric().withMessage("PIN must be 6 digits"),
+  ],
+  async (req, res) => {
+    try {
+      if (sendValidationErrors(req, res)) return;
+      const { email, pin } = req.body;
+      const verification = await EmailVerification.findOne({ email });
 
-  } catch (error) {
-    console.error('Resend PIN error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
-});
-
-// @route   POST /api/auth/login
-// @desc    Login user
-// @access  Public
-router.post('/login', [
-  body('email')
-    .isEmail()
-    .normalizeEmail()
-    .withMessage('Please enter a valid email address'),
-  body('password')
-    .notEmpty()
-    .withMessage('Password is required')
-], async (req, res) => {
-  try {
-    // Check for validation errors
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array()
-      });
-    }
-
-    const { email, password } = req.body;
-
-    // Find user by email and include password
-    const user = await User.findByEmail(email);
-    if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid email or password'
-      });
-    }
-
-    // Check if account is locked
-    if (user.isLocked) {
-      return res.status(423).json({
-        success: false,
-        message: 'Account is temporarily locked due to too many failed login attempts. Please try again later.'
-      });
-    }
-
-    // Check if account is active
-    if (!user.isActive) {
-      return res.status(401).json({
-        success: false,
-        message: 'Account has been deactivated. Please contact support.'
-      });
-    }
-
-    // Verify password
-    const isPasswordValid = await user.comparePassword(password);
-    if (!isPasswordValid) {
-      // Increment login attempts
-      await user.incLoginAttempts();
-
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid email or password'
-      });
-    }
-
-    // Reset login attempts on successful login
-    if (user.loginAttempts > 0) {
-      await user.resetLoginAttempts();
-    }
-
-    // Update last login
-    await user.updateLastLogin();
-
-    // Generate JWT token
-    const token = generateToken(user._id);
-
-    res.json({
-      success: true,
-      message: 'Login successful',
-      data: {
-        user: user.toProfileJSON(), // Use toProfileJSON to get avatar URL
-        token
+      if (!verification) {
+        return res.status(400).json({
+          success: false,
+          message: "Verification request not found or already used. Please sign up again.",
+        });
       }
-    });
+      if (verification.expiresAt < new Date()) {
+        await verification.deleteOne();
+        return res.status(400).json({
+          success: false,
+          message: "Verification PIN has expired. Please sign up again.",
+        });
+      }
+      if (verification.attempts >= 5) {
+        await verification.deleteOne();
+        return res.status(400).json({
+          success: false,
+          message: "Too many failed attempts. Please sign up again.",
+        });
+      }
+      if (!(await comparePin(pin, verification.pinHash))) {
+        verification.attempts += 1;
+        await verification.save();
+        return res.status(400).json({
+          success: false,
+          message: `Invalid PIN. ${5 - verification.attempts} attempts remaining.`,
+        });
+      }
 
-  } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error during login',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
-});
+      const user = await User.findById(verification.userId);
+      if (!user) {
+        await verification.deleteOne();
+        return res.status(400).json({
+          success: false,
+          message: "Registration no longer exists. Please sign up again.",
+        });
+      }
 
-// @route   GET /api/auth/me
-// @desc    Get current user profile
-// @access  Private
-router.get('/me', auth, async (req, res) => {
-  try {
-    const user = await User.findById(req.user.userId).select('-password -loginAttempts -lockUntil');
+      user.isEmailVerified = true;
+      await user.save();
+      await verification.deleteOne();
 
-    if (!user) {
-      return res.status(404).json({
+      return res.status(201).json({
+        success: true,
+        message: "Email verified successfully! Your account has been created.",
+        data: { user: user.toProfileJSON(), token: generateToken(user) },
+      });
+    } catch (error) {
+      console.error("Verification error:", error.message);
+      return res.status(500).json({
         success: false,
-        message: 'User not found'
+        message: "Server error during verification",
       });
     }
+  },
+);
 
-    res.json({
-      success: true,
-      data: { user: user.toProfileJSON() }
-    });
+router.post(
+  "/resend-pin",
+  resendLimit,
+  [body("email").isEmail().normalizeEmail().withMessage("Please enter a valid email address")],
+  async (req, res) => {
+    try {
+      if (sendValidationErrors(req, res)) return;
+      const verification = await EmailVerification.findOne({ email: req.body.email });
+      if (!verification) {
+        return res.status(400).json({
+          success: false,
+          message: "No pending verification found. Please sign up again.",
+        });
+      }
 
-  } catch (error) {
-    console.error('Get profile error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
-});
+      const user = await User.findById(verification.userId);
+      if (!user || user.isEmailVerified) {
+        await verification.deleteOne();
+        return res.status(400).json({
+          success: false,
+          message: "No pending verification found. Please sign up again.",
+        });
+      }
 
-// @route   POST /api/auth/logout
-// @desc    Logout user (client-side token removal)
-// @access  Private
-router.post('/logout', auth, (req, res) => {
-  // In a stateless JWT system, logout is handled client-side by removing the token
-  // This endpoint exists for consistency and future enhancements (like token blacklisting)
-  res.json({
-    success: true,
-    message: 'Logged out successfully'
-  });
-});
+      const pin = generatePIN();
+      verification.pinHash = await hashPin(pin);
+      verification.expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+      verification.attempts = 0;
+      await verification.save();
 
-// @route   POST /api/auth/refresh
-// @desc    Refresh JWT token
-// @access  Private
-router.post('/refresh', auth, async (req, res) => {
+      const emailResult = await sendVerificationEmail(
+        user.email,
+        pin,
+        user.firstName,
+      );
+      if (!emailResult.success) {
+        return res.status(500).json({
+          success: false,
+          message: "Failed to send verification email. Please try again.",
+        });
+      }
+
+      return res.json({ success: true, message: "New verification PIN sent to your email." });
+    } catch (error) {
+      console.error("Resend PIN error:", error.message);
+      return res.status(500).json({ success: false, message: "Server error" });
+    }
+  },
+);
+
+router.post(
+  "/login",
+  loginLimit,
+  [
+    body("email").isEmail().normalizeEmail().withMessage("Please enter a valid email address"),
+    body("password").notEmpty().withMessage("Password is required"),
+  ],
+  async (req, res) => {
+    try {
+      if (sendValidationErrors(req, res)) return;
+      const user = await User.findByEmail(req.body.email);
+      if (!user || !(await user.comparePassword(req.body.password))) {
+        if (user) await user.incLoginAttempts();
+        return res.status(401).json({ success: false, message: "Invalid email or password" });
+      }
+      if (user.isLocked) {
+        return res.status(423).json({
+          success: false,
+          message: "Account is temporarily locked. Please try again later.",
+        });
+      }
+      if (!user.isActive) {
+        return res.status(401).json({ success: false, message: "Account has been deactivated." });
+      }
+      if (!user.isEmailVerified) {
+        return res.status(403).json({ success: false, message: "Verify your email before logging in." });
+      }
+
+      if (user.loginAttempts > 0) await user.resetLoginAttempts();
+      await user.updateLastLogin();
+      return res.json({
+        success: true,
+        message: "Login successful",
+        data: { user: user.toProfileJSON(), token: generateToken(user) },
+      });
+    } catch (error) {
+      console.error("Login error:", error.message);
+      return res.status(500).json({ success: false, message: "Server error during login" });
+    }
+  },
+);
+
+router.get("/me", auth, async (req, res) => {
   try {
     const user = await User.findById(req.user.userId);
-
-    if (!user || !user.isActive) {
-      return res.status(401).json({
-        success: false,
-        message: 'User not found or inactive'
-      });
-    }
-
-    // Generate new token
-    const token = generateToken(user._id);
-
-    res.json({
-      success: true,
-      message: 'Token refreshed successfully',
-      data: { token }
-    });
-
+    if (!user) return res.status(404).json({ success: false, message: "User not found" });
+    return res.json({ success: true, data: { user: user.toProfileJSON() } });
   } catch (error) {
-    console.error('Token refresh error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    console.error("Get profile error:", error.message);
+    return res.status(500).json({ success: false, message: "Server error" });
   }
 });
 
-// @route   POST /api/auth/forgot-password
-// @desc    Request password reset (send email with reset link)
-// @access  Public
-router.post('/forgot-password', [
-  body('email')
-    .isEmail()
-    .normalizeEmail()
-    .withMessage('Please enter a valid email address')
-], async (req, res) => {
+router.post("/logout", auth, (req, res) => {
+  res.json({ success: true, message: "Logged out successfully" });
+});
+
+router.post("/refresh", auth, async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array()
-      });
+    const user = await User.findById(req.user.userId);
+    if (!user?.isActive) {
+      return res.status(401).json({ success: false, message: "User not found or inactive" });
     }
-
-    const { email } = req.body;
-
-    // Find user by email
-    const user = await User.findOne({ email });
-
-    // Always return success message for security (don't reveal if email exists)
-    const successMessage = 'If an account exists with this email, you will receive a password reset link shortly.';
-
-    if (!user) {
-      return res.json({
-        success: true,
-        message: successMessage
-      });
-    }
-
-    // Check if user account is active
-    if (!user.isActive) {
-      return res.json({
-        success: true,
-        message: successMessage
-      });
-    }
-
-    // Delete any existing password reset requests for this user
-    await PasswordReset.deleteMany({ email });
-
-    // Generate reset token
-    const resetToken = generateResetToken();
-
-    // Create password reset record
-    const passwordReset = new PasswordReset({
-      email,
-      token: resetToken,
-      userId: user._id
-    });
-
-    await passwordReset.save();
-
-    // Send password reset email
-    console.log('Attempting to send password reset email to:', email);
-    const emailResult = await sendPasswordResetEmail(email, resetToken, user.firstName);
-
-    if (!emailResult.success) {
-      console.error('❌ Failed to send password reset email:', emailResult.error);
-      // Still return success to user for security
-    } else {
-      console.log('✅ Password reset email sent successfully to:', email);
-    }
-
-    res.json({
+    return res.json({
       success: true,
-      message: successMessage
+      message: "Token refreshed successfully",
+      data: { token: generateToken(user) },
     });
-
   } catch (error) {
-    console.error('Forgot password error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error. Please try again later.',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    console.error("Token refresh error:", error.message);
+    return res.status(500).json({ success: false, message: "Server error" });
   }
 });
 
-// @route   POST /api/auth/reset-password
-// @desc    Reset password using token
-// @access  Public
-router.post('/reset-password', [
-  body('token')
-    .notEmpty()
-    .withMessage('Reset token is required'),
-  body('password')
-    .isLength({ min: 6 })
-    .withMessage('Password must be at least 6 characters long')
-    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
-    .withMessage('Password must contain at least one uppercase letter, one lowercase letter, and one number'),
-  body('confirmPassword')
-    .custom((value, { req }) => {
-      if (value !== req.body.password) {
-        throw new Error('Passwords do not match');
+router.post(
+  "/forgot-password",
+  forgotPasswordLimit,
+  [body("email").isEmail().normalizeEmail().withMessage("Please enter a valid email address")],
+  async (req, res) => {
+    const successMessage =
+      "If an account exists with this email, you will receive a password reset link shortly.";
+    try {
+      if (sendValidationErrors(req, res)) return;
+      const user = await User.findOne({ email: req.body.email });
+      if (!user?.isActive || !user.isEmailVerified) {
+        return res.json({ success: true, message: successMessage });
       }
+
+      await PasswordReset.deleteMany({ userId: user._id });
+      const resetToken = generateResetToken();
+      await PasswordReset.create({
+        email: user.email,
+        tokenHash: hashResetToken(resetToken),
+        userId: user._id,
+      });
+      await sendPasswordResetEmail(user.email, resetToken, user.firstName);
+      return res.json({ success: true, message: successMessage });
+    } catch (error) {
+      console.error("Forgot password error:", error.message);
+      return res.status(500).json({ success: false, message: "Server error. Please try again later." });
+    }
+  },
+);
+
+router.post(
+  "/reset-password",
+  resetPasswordLimit,
+  [
+    body("token").notEmpty().withMessage("Reset token is required"),
+    passwordRules,
+    body("confirmPassword").custom((value, { req }) => {
+      if (value !== req.body.password) throw new Error("Passwords do not match");
       return true;
-    })
-], async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array()
-      });
-    }
-
-    const { token, password } = req.body;
-
-    // Find password reset record
-    const passwordReset = await PasswordReset.findOne({
-      token,
-      used: false
-    });
-
-    if (!passwordReset) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid or expired reset token. Please request a new password reset.'
-      });
-    }
-
-    // Check if token has expired
-    if (passwordReset.expiresAt < new Date()) {
-      await PasswordReset.deleteOne({ _id: passwordReset._id });
-      return res.status(400).json({
-        success: false,
-        message: 'Reset token has expired. Please request a new password reset.'
-      });
-    }
-
-    // Check attempts (prevent brute force)
-    if (passwordReset.attempts >= 5) {
-      await PasswordReset.deleteOne({ _id: passwordReset._id });
-      return res.status(400).json({
-        success: false,
-        message: 'Too many failed attempts. Please request a new password reset.'
-      });
-    }
-
-    // Find user
-    const user = await User.findById(passwordReset.userId).select('+password');
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found.'
-      });
-    }
-
-    // Check if new password is same as old password
-    const isSamePassword = await user.comparePassword(password);
-    if (isSamePassword) {
-      return res.status(400).json({
-        success: false,
-        message: 'New password must be different from your current password.'
-      });
-    }
-
-    // Update password
-    user.password = password;
-    await user.save();
-
-    // Mark reset token as used
-    passwordReset.used = true;
-    await passwordReset.save();
-
-    // Reset login attempts if any
-    if (user.loginAttempts > 0) {
-      await user.resetLoginAttempts();
-    }
-
-    // Send confirmation email
-    await sendPasswordResetConfirmation(user.email, user.firstName);
-
-    res.json({
-      success: true,
-      message: 'Password reset successful! You can now log in with your new password.'
-    });
-
-  } catch (error) {
-    console.error('Reset password error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error. Please try again later.',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
-});
-
-// @route   GET /api/auth/verify-reset-token/:token
-// @desc    Verify if reset token is valid (for frontend validation)
-// @access  Public
-router.get('/verify-reset-token/:token', async (req, res) => {
-  try {
-    const { token } = req.params;
-
-    const passwordReset = await PasswordReset.findOne({
-      token,
-      used: false
-    });
-
-    if (!passwordReset) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid or expired reset token.'
-      });
-    }
-
-    if (passwordReset.expiresAt < new Date()) {
-      await PasswordReset.deleteOne({ _id: passwordReset._id });
-      return res.status(400).json({
-        success: false,
-        message: 'Reset token has expired.'
-      });
-    }
-
-    res.json({
-      success: true,
-      message: 'Token is valid',
-      data: {
-        email: passwordReset.email
+    }),
+  ],
+  async (req, res) => {
+    try {
+      if (sendValidationErrors(req, res)) return;
+      const tokenHash = hashResetToken(req.body.token);
+      const passwordReset = await PasswordReset.findOne({ tokenHash });
+      if (!passwordReset || passwordReset.expiresAt < new Date()) {
+        if (passwordReset) await passwordReset.deleteOne();
+        return res.status(400).json({
+          success: false,
+          message: "Invalid or expired reset token. Please request a new password reset.",
+        });
       }
-    });
 
-  } catch (error) {
-    console.error('Verify reset token error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      const user = await User.findById(passwordReset.userId).select("+password");
+      if (!user) {
+        await passwordReset.deleteOne();
+        return res.status(400).json({ success: false, message: "Invalid reset request." });
+      }
+      if (await user.comparePassword(req.body.password)) {
+        return res.status(400).json({
+          success: false,
+          message: "New password must be different from your current password.",
+        });
+      }
+
+      const consumed = await PasswordReset.findOneAndDelete({
+        _id: passwordReset._id,
+        tokenHash,
+      });
+      if (!consumed) {
+        return res.status(400).json({ success: false, message: "Invalid reset request." });
+      }
+
+      user.password = req.body.password;
+      user.tokenVersion = Number(user.tokenVersion || 0) + 1;
+      await user.save();
+      if (user.loginAttempts > 0) await user.resetLoginAttempts();
+
+      sendPasswordResetConfirmation(user.email, user.firstName).catch((error) =>
+        console.error("Password reset confirmation failed:", error.message),
+      );
+      return res.json({
+        success: true,
+        message: "Password reset successful! You can now log in with your new password.",
+      });
+    } catch (error) {
+      console.error("Reset password error:", error.message);
+      return res.status(500).json({ success: false, message: "Server error. Please try again later." });
+    }
+  },
+);
+
+router.get("/verify-reset-token/:token", async (req, res) => {
+  try {
+    const passwordReset = await PasswordReset.findOne({
+      tokenHash: hashResetToken(req.params.token),
     });
+    if (!passwordReset || passwordReset.expiresAt < new Date()) {
+      if (passwordReset) await passwordReset.deleteOne();
+      return res.status(400).json({ success: false, message: "Invalid or expired reset token." });
+    }
+    return res.json({
+      success: true,
+      message: "Token is valid",
+      data: { email: passwordReset.email },
+    });
+  } catch (error) {
+    console.error("Verify reset token error:", error.message);
+    return res.status(500).json({ success: false, message: "Server error" });
   }
 });
 

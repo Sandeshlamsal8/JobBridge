@@ -3,6 +3,7 @@ const { body, validationResult, query } = require("express-validator");
 const Job = require("../models/Job");
 const Application = require("../models/Application");
 const { auth, optionalAuth, requireUserType } = require("../middleware/auth");
+const { pickJobFields } = require("../utils/jobFields");
 
 const router = express.Router();
 
@@ -459,7 +460,7 @@ router.post(
       }
 
       const jobData = {
-        ...req.body,
+        ...pickJobFields(req.body),
         company: req.user.userId,
         companyName: companyName,
       };
@@ -558,7 +559,7 @@ router.put(
       }
 
       // Update job
-      Object.assign(job, req.body);
+      Object.assign(job, pickJobFields(req.body));
       await job.save();
 
       await job.populate(

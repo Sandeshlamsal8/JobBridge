@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { API_URL } from "../utils/config";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 import { showToast } from "../components/ToastContainer";
@@ -30,7 +31,7 @@ function CandidateRankingPage() {
     try {
       const token = sessionStorage.getItem("jobbridge_token");
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL || "http://localhost:5000/api"}/jobs/${jobId}`,
+        `${API_URL}/jobs/${jobId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -54,7 +55,7 @@ function CandidateRankingPage() {
     try {
       const token = sessionStorage.getItem("jobbridge_token");
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL || "http://localhost:5000/api"}/ai-matching/rank-all/${jobId}`,
+        `${API_URL}/ai-matching/rank-all/${jobId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -87,7 +88,7 @@ function CandidateRankingPage() {
     try {
       const token = sessionStorage.getItem("jobbridge_token");
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL || "http://localhost:5000/api"}/applications/${applicationId}/status`,
+        `${API_URL}/applications/${applicationId}/status`,
         {
           method: "PUT",
           headers: {

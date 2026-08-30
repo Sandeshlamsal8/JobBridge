@@ -1,5 +1,8 @@
 const nodemailer = require("nodemailer");
 
+const senderAddress = () =>
+  process.env.SMTP_FROM || process.env.SMTP_USER || process.env.EMAIL_USER;
+
 // Create transporter
 const createTransporter = () => {
   // For development, use ethereal email (fake SMTP)
@@ -8,8 +11,8 @@ const createTransporter = () => {
   if (process.env.NODE_ENV === "production") {
     return nodemailer.createTransport({
       host: process.env.SMTP_HOST,
-      port: process.env.SMTP_PORT,
-      secure: true,
+      port: Number(process.env.SMTP_PORT || 587),
+      secure: Number(process.env.SMTP_PORT || 587) === 465,
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
@@ -38,7 +41,7 @@ const sendVerificationEmail = async (email, pin, firstName) => {
     const transporter = createTransporter();
 
     const mailOptions = {
-      from: `"JobBridge" <${process.env.EMAIL_USER}>`,
+      from: `"JobBridge" <${senderAddress()}>`,
       to: email,
       subject: "Verify Your Email - JobBridge",
       html: `
@@ -113,7 +116,7 @@ const sendPasswordResetEmail = async (email, resetToken, firstName) => {
     }/reset-password?token=${resetToken}`;
 
     const mailOptions = {
-      from: `"JobBridge" <${process.env.EMAIL_USER}>`,
+      from: `"JobBridge" <${senderAddress()}>`,
       to: email,
       subject: "Password Reset Request - JobBridge",
       html: `
@@ -185,7 +188,7 @@ const sendPasswordResetConfirmation = async (email, firstName) => {
     const transporter = createTransporter();
 
     const mailOptions = {
-      from: `"JobBridge" <${process.env.EMAIL_USER}>`,
+      from: `"JobBridge" <${senderAddress()}>`,
       to: email,
       subject: "Password Changed Successfully - JobBridge",
       html: `
@@ -252,7 +255,7 @@ const sendNotificationEmail = async (
     const transporter = createTransporter();
 
     const mailOptions = {
-      from: `"JobBridge" <${process.env.EMAIL_USER}>`,
+      from: `"JobBridge" <${senderAddress()}>`,
       to: email,
       subject: `${title} - JobBridge`,
       html: `

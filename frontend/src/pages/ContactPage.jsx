@@ -1,6 +1,7 @@
 import { useAuth } from "../contexts/AuthContext";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
+import { useNavigate } from "react-router-dom";
 
 function ContactPage() {
   const { user, logout } = useAuth();

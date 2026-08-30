@@ -49,7 +49,7 @@ function SavedJobsPage() {
       } else {
         setError(data.message || "Failed to fetch saved jobs");
       }
-    } catch (error) {
+    } catch {
       setError("Network error. Please try again.");
     } finally {
       setLoading(false);

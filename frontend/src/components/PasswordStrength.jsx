@@ -51,7 +51,7 @@ function PasswordStrength({ password, onStrengthChange }) {
       }
 
       // Special character check
-      if (/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pwd)) {
+      if (/[^A-Za-z0-9]/.test(pwd)) {
         score += 1;
       } else {
         suggestions.push("Add special characters (!@#$%^&*)");

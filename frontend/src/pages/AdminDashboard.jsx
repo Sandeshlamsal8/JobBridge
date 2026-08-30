@@ -4,9 +4,9 @@ import { useNavigate } from "react-router-dom";
 import { showToast } from "../components/ToastContainer";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
+import { API_URL } from "../utils/config";
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const API_BASE_URL = API_URL;
 
 const getAuthToken = () => sessionStorage.getItem("jobbridge_token");
 
@@ -269,7 +269,7 @@ const AdminDashboard = () => {
       if (response.success) {
         return true;
       }
-    } catch (error) {
+    } catch {
       setPasswordError("Invalid password");
       return false;
     }

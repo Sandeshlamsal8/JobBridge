@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
+import { API_URL } from "../utils/config";
 
 export const useProfileCompletion = () => {
   const { user, isAuthenticated } = useAuth();
@@ -13,10 +14,8 @@ export const useProfileCompletion = () => {
     try {
       setLoading(true);
       const token = sessionStorage.getItem("jobbridge_token");
-      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
-      
       const response = await fetch(
-        `${apiUrl}/users/profile-completion`,
+        `${API_URL}/users/profile-completion`,
         {
           headers: {
             Authorization: `Bearer ${token}`,

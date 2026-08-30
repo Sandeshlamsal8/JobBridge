@@ -1,5 +1,6 @@
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+import { API_URL } from "./config";
+
+const API_BASE_URL = API_URL;
 
 // Helper function to get auth token from sessionStorage (clears when browser closes)
 const getAuthToken = () => {
@@ -368,10 +369,6 @@ export const messageAPI = {
     });
   },
 
-  // Search messages
-  searchMessages: async (query) => {
-    return await apiRequest(`/messages/search?q=${encodeURIComponent(query)}`);
-  },
 };
 
 // Attachment API functions

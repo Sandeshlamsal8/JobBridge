@@ -52,6 +52,7 @@ router.post(
   "/profile-picture",
   auth,
   upload.single("profilePicture"),
+  upload.validateFileContent,
   async (req, res) => {
     try {
       if (!req.file) {
@@ -152,6 +153,7 @@ router.put("/change-password", auth, async (req, res) => {
 
     // Update password
     user.password = newPassword;
+    user.tokenVersion = Number(user.tokenVersion || 0) + 1;
     await user.save();
 
     // Send password change confirmation email

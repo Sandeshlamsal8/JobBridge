@@ -73,7 +73,7 @@ const authReducer = (state, action) => {
         ...state,
         error: null,
       };
-    case AUTH_ACTIONS.UPDATE_USER:
+    case AUTH_ACTIONS.UPDATE_USER: {
       const hasAvatarChanged = action.payload.profile?.avatar !== state.user?.profile?.avatar;
       return {
         ...state,
@@ -90,6 +90,7 @@ const authReducer = (state, action) => {
           ? state.avatarUpdateCounter + 1 
           : state.avatarUpdateCounter,
       };
+    }
     case AUTH_ACTIONS.UPDATE_ACTIVITY:
       return {
         ...state,
@@ -413,6 +414,7 @@ export const AuthProvider = ({ children }) => {
 };
 
 // Custom hook to use auth context
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {

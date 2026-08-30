@@ -44,6 +44,7 @@ function ToastContainer() {
 }
 
 // Utility function to show toasts from anywhere in the app
+// eslint-disable-next-line react-refresh/only-export-components
 export const showToast = (message, type = "success", duration = 4000) => {
   const event = new CustomEvent("showToast", {
     detail: { message, type, duration },

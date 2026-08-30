@@ -5,8 +5,21 @@ const AttachmentService = require("../services/attachmentService");
 const Conversation = require("../models/Conversation");
 const { auth, requireAnyUserType } = require("../middleware/auth");
 const upload = require("../middleware/upload");
+const { createRateLimiter } = require("../middleware/rateLimit");
 
 const router = express.Router();
+const messageLimit = createRateLimiter({
+  name: "message",
+  limit: 100,
+  windowSeconds: 24 * 60 * 60,
+  key: (req) => `${req.user.userId}:${req.params.conversationId}`,
+});
+const attachmentLimit = createRateLimiter({
+  name: "attachment",
+  limit: 10,
+  windowSeconds: 60 * 60,
+  key: (req) => req.user.userId,
+});
 
 // ============================================================================
 // CONVERSATION ROUTES
@@ -291,6 +304,7 @@ router.post(
   [
     auth,
     requireAnyUserType(["jobseeker", "employer"]),
+    messageLimit,
     body("content")
       .trim()
       .isLength({ min: 1, max: 5000 })
@@ -336,32 +350,6 @@ router.post(
   },
 );
 
-// @route   GET /api/messaging/messages/search
-// @desc    Search messages
-// @access  Private
-router.get(
-  "/messages/search",
-  [auth, requireAnyUserType(["jobseeker", "employer"])],
-  async (req, res) => {
-    try {
-      // TODO: Implement message search
-      res.json({
-        success: true,
-        message: "Message search endpoint - to be implemented",
-        data: { results: [] },
-      });
-    } catch (error) {
-      console.error("Search messages error:", error);
-      res.status(500).json({
-        success: false,
-        message: "Server error",
-        error:
-          process.env.NODE_ENV === "development" ? error.message : undefined,
-      });
-    }
-  },
-);
-
 // ============================================================================
 // ATTACHMENT ROUTES
 // ============================================================================
@@ -371,7 +359,13 @@ router.get(
 // @access  Private
 router.post(
   "/attachments",
-  [auth, requireAnyUserType(["jobseeker", "employer"]), upload.single("file")],
+  [
+    auth,
+    requireAnyUserType(["jobseeker", "employer"]),
+    attachmentLimit,
+    upload.single("file"),
+    upload.validateFileContent,
+  ],
   async (req, res) => {
     try {
       if (!req.file) {
@@ -396,12 +390,11 @@ router.post(
         conversationId,
       );
 
-      // Trigger malware scan in background
-      AttachmentService.scanForMalware(attachment._id.toString()).catch(
-        (error) => {
-          console.error("Background malware scan failed:", error);
-        },
-      );
+      if (attachment.malwareScanStatus === "pending") {
+        AttachmentService.scanForMalware(attachment._id.toString()).catch(
+          (error) => console.error("Background malware scan failed:", error),
+        );
+      }
 
       res.status(201).json({
         success: true,

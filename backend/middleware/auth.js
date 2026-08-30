@@ -1,6 +1,9 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 
+const tokenVersionMatches = (decoded, user) =>
+  Number(decoded.tokenVersion || 0) === Number(user.tokenVersion || 0);
+
 const auth = async (req, res, next) => {
   try {
     // Get token from header
@@ -41,6 +44,13 @@ const auth = async (req, res, next) => {
         return res.status(401).json({
           success: false,
           message: "Account has been deactivated",
+        });
+      }
+
+      if (!tokenVersionMatches(decoded, user)) {
+        return res.status(401).json({
+          success: false,
+          message: "Token is no longer valid",
         });
       }
 
@@ -144,7 +154,11 @@ const optionalAuth = async (req, res, next) => {
       // Check if user still exists and is active
       const user = await User.findById(decoded.userId).select("-password");
 
-      if (user && user.isActive) {
+      if (
+        user &&
+        user.isActive &&
+        tokenVersionMatches(decoded, user)
+      ) {
         // Add user info to request if valid
         req.user = {
           id: decoded.userId,
@@ -172,4 +186,5 @@ module.exports = {
   requireUserType,
   requireAnyUserType,
   requireAdmin,
+  tokenVersionMatches,
 };

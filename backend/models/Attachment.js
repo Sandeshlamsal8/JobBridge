@@ -28,7 +28,7 @@ const attachmentSchema = new mongoose.Schema(
       type: Number,
       required: [true, "File size is required"],
       min: [1, "File size must be greater than 0"],
-      max: [10485760, "File size must not exceed 10MB"], // 10MB in bytes
+      max: [5242880, "File size must not exceed 5MB"],
     },
     gridFsFileId: {
       type: mongoose.Schema.Types.ObjectId,
