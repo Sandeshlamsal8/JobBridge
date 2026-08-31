@@ -3,6 +3,11 @@ const redis = require("redis");
 // Redis client instance
 let redisClient = null;
 
+function redisReconnectStrategy(retries) {
+  if (retries >= 3) return new Error("Redis connection retries exhausted");
+  return Math.min(retries * 50, 3000);
+}
+
 /**
  * Initialize Redis connection with connection pooling
  * @returns {Promise<RedisClient>} Connected Redis client
@@ -15,12 +20,7 @@ async function initializeRedis(redisUrl = process.env.REDIS_URL || "redis://loca
   redisClient = redis.createClient({
     url: redisUrl,
     socket: {
-      reconnectStrategy: (retries) => {
-        // Exponential backoff with max delay of 3000ms
-        const delay = Math.min(retries * 50, 3000);
-        console.log(`Redis reconnecting in ${delay}ms (attempt ${retries})`);
-        return delay;
-      },
+      reconnectStrategy: redisReconnectStrategy,
     },
   });
 
@@ -41,8 +41,16 @@ async function initializeRedis(redisUrl = process.env.REDIS_URL || "redis://loca
     console.log("Redis Client Ready");
   });
 
-  await redisClient.connect();
-  return redisClient;
+  try {
+    await redisClient.connect();
+    return redisClient;
+  } catch (error) {
+    try {
+      redisClient.destroy();
+    } catch {}
+    redisClient = null;
+    throw error;
+  }
 }
 
 /**
@@ -74,4 +82,5 @@ module.exports = {
   initializeRedis,
   getRedisClient,
   closeRedis,
+  redisReconnectStrategy,
 };
